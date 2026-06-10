@@ -10,7 +10,7 @@ export interface CommunitySkin {
 }
 
 const MAX_SKINS = 50
-const USE_BLOB  = !!process.env.BLOB_READ_WRITE_TOKEN
+const USE_BLOB  = !!process.env.BLOB_STORE_ID
 
 // ── Filesystem backend (local dev) ───────────────────────────────────
 const DATA_FILE = join(process.cwd(), 'data', 'community-skins.json')
