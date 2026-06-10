@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-green-mine: #5D7C15;
+  --color-green-grass: #7FB238;
+  --color-green-dark: #3D5A0A;
+  --color-brown-wood: #8B6914;
+  --color-brown-dirt: #9B7653;
+  --color-brown-earth: #604728;
+  --color-cream: #FEF9EF;
+  --color-cream-dark: #F5EDDA;
+  --color-earth: #2D1B0E;
+  --color-earth-soft: #6B4C2A;
+
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-body: 'Nunito', sans-serif;
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-earth);
+  font-family: var(--font-body);
+  min-height: 100vh;
+}
+
+/* Pixelated image rendering for Minecraft previews */
+.pixel-art {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cream-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-green-grass);
+  border-radius: 4px;
+}
+
+/* ReactCrop overrides */
+.ReactCrop__crop-selection {
+  border: 3px solid var(--color-green-grass) !important;
+}
+.ReactCrop__drag-handle::after {
+  background-color: var(--color-green-grass) !important;
+}
