@@ -56,7 +56,7 @@ export default function OGImage() {
           color: 'white',
           display: 'flex',
         }}>
-          skinme.app
+          makeskins.com
         </div>
       </div>
     ),
