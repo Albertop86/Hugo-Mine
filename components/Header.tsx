@@ -52,6 +52,19 @@ export default function Header() {
             style={{ color: 'var(--color-earth-soft)' }}>
             {t('navGallery')}
           </Link>
+          <Link href="/guides" className="transition-colors hover:text-green-mine"
+            style={{ color: 'var(--color-earth-soft)' }}>
+            {t('navGuides')}
+          </Link>
+          <Link href="/blog" className="transition-colors hover:text-green-mine"
+            style={{ color: 'var(--color-earth-soft)' }}>
+            {t('navBlog')}
+          </Link>
+          <Link href="/skin-del-dia"
+            className="transition-colors hover:opacity-100 px-3 py-1 rounded-xl font-bold text-xs"
+            style={{ background: 'var(--color-green-mine)', color: 'white', opacity: 0.9 }}>
+            📅 {t('navSkinDelDia')}
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -110,6 +123,18 @@ export default function Header() {
           <Link href="/gallery" onClick={() => setMenuOpen(false)}
             className="py-2" style={{ color: 'var(--color-earth-soft)' }}>
             {t('navGallery')}
+          </Link>
+          <Link href="/guides" onClick={() => setMenuOpen(false)}
+            className="py-2" style={{ color: 'var(--color-earth-soft)' }}>
+            {t('navGuides')}
+          </Link>
+          <Link href="/blog" onClick={() => setMenuOpen(false)}
+            className="py-2" style={{ color: 'var(--color-earth-soft)' }}>
+            {t('navBlog')}
+          </Link>
+          <Link href="/skin-del-dia" onClick={() => setMenuOpen(false)}
+            className="py-2 font-bold" style={{ color: 'var(--color-green-mine)' }}>
+            📅 {t('navSkinDelDia')}
           </Link>
           <a href="#converter" onClick={() => setMenuOpen(false)}
             className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-white font-bold"

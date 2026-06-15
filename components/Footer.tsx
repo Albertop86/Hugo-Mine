@@ -16,7 +16,7 @@ export default function Footer() {
             <span className="text-xl">🟩</span>
             <span className="font-extrabold text-white"
               style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.75rem' }}>
-              SkinMe
+              MakeSkins
             </span>
           </div>
           <p className="text-sm opacity-70">{t('tagline')}</p>

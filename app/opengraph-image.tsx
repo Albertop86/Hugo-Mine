@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt     = 'SkinMe – Crea tu skin de Minecraft'
+export const alt     = 'MakeSkins – Crea tu skin de Minecraft'
 export const size    = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -35,7 +35,7 @@ export default function OGImage() {
           fontSize: 80, fontWeight: 900, color: 'white',
           letterSpacing: '-2px', marginBottom: 20, display: 'flex',
         }}>
-          SkinMe
+          MakeSkins
         </div>
 
         {/* Tagline */}

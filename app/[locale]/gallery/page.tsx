@@ -7,6 +7,18 @@ import CharacterPreview from '@/components/CharacterPreview'
 import { PREMADE_SKINS, CATEGORY_LABELS, type SkinCategory } from '@/lib/premadeSkins'
 import type { CommunitySkin } from '@/app/api/skins/route'
 
+const CHAR_SKINS_URL = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com/skins/characters/index.json'
+
+interface CharSkinEntry {
+  slug:     string
+  nameEs:   string
+  nameEn:   string
+  emoji:    string
+  category: string
+  date:     string
+  skinUrl:  string
+}
+
 // ── Skin card ──────────────────────────────────────────────────────────
 function SkinCard({ url, name, badge, filename }: {
   url:      string
@@ -50,8 +62,10 @@ export default function GalleryPage() {
   const locale = useLocale() as 'es' | 'en' | 'fr' | 'pt'
 
   const [activeCategory, setActiveCategory] = useState<SkinCategory | 'all'>('all')
-  const [community, setCommunity] = useState<CommunitySkin[]>([])
-  const [loading, setLoading]     = useState(true)
+  const [community, setCommunity]       = useState<CommunitySkin[]>([])
+  const [charSkins, setCharSkins]       = useState<CharSkinEntry[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [charSkinsLoaded, setCharSkinsLoaded] = useState(false)
 
   useEffect(() => {
     fetch('/api/skins')
@@ -59,6 +73,11 @@ export default function GalleryPage() {
       .then(d => setCommunity(d.skins ?? []))
       .catch(() => {})
       .finally(() => setLoading(false))
+    fetch(CHAR_SKINS_URL, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setCharSkins(d))
+      .catch(() => {})
+      .finally(() => setCharSkinsLoaded(true))
   }, [])
 
   const filtered = activeCategory === 'all'
@@ -126,6 +145,26 @@ export default function GalleryPage() {
           ))}
         </div>
       </section>
+
+      {/* Character skins del día */}
+      {(charSkinsLoaded && charSkins.length > 0) && (
+        <section className="flex flex-col gap-5">
+          <h2 className="font-extrabold text-lg" style={{ color: 'var(--color-earth)' }}>
+            📅 {locale === 'es' ? 'Personajes del Día' : locale === 'fr' ? 'Personnages du Jour' : locale === 'pt' ? 'Personagens do Dia' : 'Daily Characters'}
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {charSkins.map(skin => (
+              <SkinCard
+                key={skin.slug}
+                url={skin.skinUrl}
+                name={locale === 'es' ? skin.nameEs : skin.nameEn}
+                badge={skin.emoji}
+                filename={`${skin.slug}-minecraft-skin.png`}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Community skins */}
       <section className="flex flex-col gap-5">

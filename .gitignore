@@ -42,6 +42,7 @@ yarn-error.log*
 next-env.d.ts
 
 # dev artifacts (test photos, outputs, local scripts)
+/scripts/gsc-report.js
 /test-photos/
 /test-output/
 /test-skin.mjs
@@ -49,3 +50,5 @@ next-env.d.ts
 /scripts/
 /iniciar-servidor.bat
 /public/comparisons.html
+
+.vercel

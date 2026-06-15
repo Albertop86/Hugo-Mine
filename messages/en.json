@@ -1,14 +1,17 @@
 {
   "Metadata": {
-    "title": "SkinMe – Create your Minecraft skin from a photo",
+    "title": "MakeSkins – Create your Minecraft skin from a photo",
     "description": "Upload your photo and get a custom Minecraft skin in seconds. Free, no account needed, ready for PC, console and mobile."
   },
   "Header": {
-    "brand": "SkinMe",
+    "brand": "MakeSkins",
     "navHow": "How it works",
     "navTutorials": "Tutorials",
     "navEditor": "Editor",
     "navGallery": "Gallery",
+    "navGuides": "Guides",
+    "navBlog": "Blog",
+    "navSkinDelDia": "Skin of the Day",
     "cta": "Create skin"
   },
   "Hero": {
@@ -75,19 +78,19 @@
   },
   "Footer": {
     "tagline": "Made with blocks and lots of love.",
-    "disclaimer": "SkinMe is not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Studios.",
+    "disclaimer": "MakeSkins is not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang Studios.",
     "privacy": "Privacy",
     "terms": "Terms"
   },
   "Privacy": {
     "title": "Privacy Policy",
-    "intro": "Your privacy matters to us. Here's how SkinMe works.",
+    "intro": "Your privacy matters to us. Here's how MakeSkins works.",
     "noDataTitle": "We don't store your photos",
-    "noDataDesc": "SkinMe processes everything locally in your browser. Your photos are never sent to any server. Once you close the tab, the image is gone forever.",
+    "noDataDesc": "MakeSkins processes everything locally in your browser. Your photos are never sent to any server. Once you close the tab, the image is gone forever.",
     "noAccountTitle": "No accounts or sign-up",
     "noAccountDesc": "You don't need to create an account or enter any personal data. We don't collect emails or names.",
-    "cookiesTitle": "No tracking cookies",
-    "cookiesDesc": "SkinMe doesn't use tracking or advertising cookies. Only those strictly necessary for the app to function.",
+    "cookiesTitle": "Cookies & Advertising",
+    "cookiesDesc": "MakeSkins uses Google AdSense to display advertising. AdSense may use cookies to personalize ads based on your interests. You can accept or decline advertising cookies in the banner shown when you arrive. If you decline, only cookies strictly necessary for the app to function will be used.",
     "contactTitle": "Contact",
     "contactDesc": "Questions? Write to us at salvaescalerasperea@gmail.com.",
     "back": "← Back to home"
@@ -95,9 +98,9 @@
   "Terms": {
     "title": "Terms of Use",
     "freeTitle": "Completely free service",
-    "freeDesc": "SkinMe is free. We don't charge for generating Minecraft skins or require registration.",
+    "freeDesc": "MakeSkins is free. We don't charge for generating Minecraft skins or require registration.",
     "mojangTitle": "Not affiliated with Mojang or Microsoft",
-    "mojangDesc": "SkinMe is an independent project and is not affiliated with, sponsored or endorsed by Mojang Studios or Microsoft Corporation. Minecraft® is a trademark of Mojang Studios.",
+    "mojangDesc": "MakeSkins is an independent project and is not affiliated with, sponsored or endorsed by Mojang Studios or Microsoft Corporation. Minecraft® is a trademark of Mojang Studios.",
     "licenseTitle": "Personal use",
     "licenseDesc": "Generated skins are for personal use. You can use them in any version of Minecraft without restrictions.",
     "liabilityTitle": "No warranties",
@@ -136,8 +139,8 @@
     "genderFemale": "Girl"
   },
   "Editor": {
-    "metaTitle": "Minecraft Skin Editor — SkinMe",
-    "metaDesc": "Design your Minecraft skin pixel by pixel with SkinMe's free editor. No sign-up needed."
+    "metaTitle": "Minecraft Skin Editor — MakeSkins",
+    "metaDesc": "Design your Minecraft skin pixel by pixel with MakeSkins' free editor. No sign-up needed."
   },
   "NotFound": {
     "title": "404",

@@ -4,8 +4,10 @@ import { getMessages, getTranslations } from 'next-intl/server'
 import { routing } from '@/lib/i18n/routing'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import CookieBanner from '@/components/CookieBanner'
 
 export async function generateMetadata({
   params
@@ -68,7 +70,14 @@ export default async function LocaleLayout({
             {children}
           </main>
           <Footer />
+          <CookieBanner />
         </NextIntlClientProvider>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7226764584055226"
+          crossOrigin="anonymous"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   )

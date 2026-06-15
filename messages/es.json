@@ -1,14 +1,17 @@
 {
   "Metadata": {
-    "title": "SkinMe – Crea tu skin de Minecraft desde una foto",
+    "title": "MakeSkins – Crea tu skin de Minecraft desde una foto",
     "description": "Sube tu foto y en segundos tendrás un skin de Minecraft personalizado. Gratis, sin registro y listo para jugar en PC, consola y móvil."
   },
   "Header": {
-    "brand": "SkinMe",
+    "brand": "MakeSkins",
     "navHow": "Cómo funciona",
     "navTutorials": "Tutoriales",
     "navEditor": "Editor",
     "navGallery": "Galería",
+    "navGuides": "Guías",
+    "navBlog": "Blog",
+    "navSkinDelDia": "Skin del Día",
     "cta": "Crear skin"
   },
   "Hero": {
@@ -75,19 +78,19 @@
   },
   "Footer": {
     "tagline": "Hecho con bloques y mucho cariño.",
-    "disclaimer": "SkinMe no está afiliado a Mojang ni a Microsoft. Minecraft es marca registrada de Mojang Studios.",
+    "disclaimer": "MakeSkins no está afiliado a Mojang ni a Microsoft. Minecraft es marca registrada de Mojang Studios.",
     "privacy": "Privacidad",
     "terms": "Términos"
   },
   "Privacy": {
     "title": "Política de privacidad",
-    "intro": "Tu privacidad es importante para nosotros. Aquí te explicamos cómo funciona SkinMe.",
+    "intro": "Tu privacidad es importante para nosotros. Aquí te explicamos cómo funciona MakeSkins.",
     "noDataTitle": "No almacenamos tus fotos",
-    "noDataDesc": "SkinMe procesa todo localmente en tu navegador. Tus fotos nunca se envían a ningún servidor. Una vez que cierras la pestaña, la imagen desaparece para siempre.",
+    "noDataDesc": "MakeSkins procesa todo localmente en tu navegador. Tus fotos nunca se envían a ningún servidor. Una vez que cierras la pestaña, la imagen desaparece para siempre.",
     "noAccountTitle": "Sin cuentas ni registro",
     "noAccountDesc": "No necesitas crear una cuenta ni introducir ningún dato personal. No recopilamos correos electrónicos ni nombres.",
-    "cookiesTitle": "Sin cookies de seguimiento",
-    "cookiesDesc": "SkinMe no utiliza cookies de seguimiento ni publicidad. Solo las estrictamente necesarias para que la aplicación funcione.",
+    "cookiesTitle": "Cookies y publicidad",
+    "cookiesDesc": "MakeSkins utiliza Google AdSense para mostrar publicidad. AdSense puede utilizar cookies para personalizar los anuncios según tus intereses. Puedes aceptar o rechazar las cookies publicitarias en el banner que aparece al entrar. Solo usamos las cookies estrictamente necesarias para el funcionamiento de la aplicación si rechazas la publicidad.",
     "contactTitle": "Contacto",
     "contactDesc": "¿Tienes preguntas? Escríbenos a salvaescalerasperea@gmail.com.",
     "back": "← Volver al inicio"
@@ -95,9 +98,9 @@
   "Terms": {
     "title": "Términos de uso",
     "freeTitle": "Servicio completamente gratuito",
-    "freeDesc": "SkinMe es gratuito. No cobramos por generar skins de Minecraft ni exigimos registro.",
+    "freeDesc": "MakeSkins es gratuito. No cobramos por generar skins de Minecraft ni exigimos registro.",
     "mojangTitle": "No afiliado a Mojang ni Microsoft",
-    "mojangDesc": "SkinMe es un proyecto independiente y no está afiliado, patrocinado ni respaldado por Mojang Studios ni por Microsoft Corporation. Minecraft® es marca registrada de Mojang Studios.",
+    "mojangDesc": "MakeSkins es un proyecto independiente y no está afiliado, patrocinado ni respaldado por Mojang Studios ni por Microsoft Corporation. Minecraft® es marca registrada de Mojang Studios.",
     "licenseTitle": "Uso personal",
     "licenseDesc": "Los skins generados son para uso personal. Puedes usarlos en cualquier versión de Minecraft sin restricciones.",
     "liabilityTitle": "Sin garantías",
@@ -136,8 +139,8 @@
     "genderFemale": "Chica"
   },
   "Editor": {
-    "metaTitle": "Editor de skin de Minecraft — SkinMe",
-    "metaDesc": "Diseña tu skin de Minecraft píxel a píxel con el editor gratuito de SkinMe. Sin registro."
+    "metaTitle": "Editor de skin de Minecraft — MakeSkins",
+    "metaDesc": "Diseña tu skin de Minecraft píxel a píxel con el editor gratuito de MakeSkins. Sin registro."
   },
   "NotFound": {
     "title": "404",

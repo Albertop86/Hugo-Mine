@@ -8,7 +8,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Terms' })
-  return { title: `${t('title')} – SkinMe` }
+  return { title: `${t('title')} – MakeSkins` }
 }
 
 export default async function TermsPage({

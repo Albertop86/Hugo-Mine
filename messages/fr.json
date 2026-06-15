@@ -1,14 +1,17 @@
 {
   "Metadata": {
-    "title": "SkinMe – Crée ton skin Minecraft depuis une photo",
+    "title": "MakeSkins – Crée ton skin Minecraft depuis une photo",
     "description": "Télécharge ta photo et obtiens un skin Minecraft personnalisé en quelques secondes. Gratuit, sans inscription, prêt pour PC, console et mobile."
   },
   "Header": {
-    "brand": "SkinMe",
+    "brand": "MakeSkins",
     "navHow": "Comment ça marche",
     "navTutorials": "Tutoriels",
     "navEditor": "Éditeur",
     "navGallery": "Galerie",
+    "navGuides": "Guides",
+    "navBlog": "Blog",
+    "navSkinDelDia": "Skin du Jour",
     "cta": "Créer un skin"
   },
   "Hero": {
@@ -75,19 +78,19 @@
   },
   "Footer": {
     "tagline": "Fait avec des blocs et beaucoup d'amour.",
-    "disclaimer": "SkinMe n'est pas affilié à Mojang ni à Microsoft. Minecraft est une marque déposée de Mojang Studios.",
+    "disclaimer": "MakeSkins n'est pas affilié à Mojang ni à Microsoft. Minecraft est une marque déposée de Mojang Studios.",
     "privacy": "Confidentialité",
     "terms": "Conditions"
   },
   "Privacy": {
     "title": "Politique de confidentialité",
-    "intro": "Ta vie privée compte pour nous. Voici comment SkinMe fonctionne.",
+    "intro": "Ta vie privée compte pour nous. Voici comment MakeSkins fonctionne.",
     "noDataTitle": "On ne stocke pas tes photos",
-    "noDataDesc": "SkinMe traite tout localement dans ton navigateur. Tes photos ne sont jamais envoyées à un serveur. Une fois l'onglet fermé, l'image disparaît pour toujours.",
+    "noDataDesc": "MakeSkins traite tout localement dans ton navigateur. Tes photos ne sont jamais envoyées à un serveur. Une fois l'onglet fermé, l'image disparaît pour toujours.",
     "noAccountTitle": "Sans compte ni inscription",
     "noAccountDesc": "Tu n'as pas besoin de créer un compte ni de saisir de données personnelles. On ne collecte pas d'e-mails ni de noms.",
-    "cookiesTitle": "Sans cookies de suivi",
-    "cookiesDesc": "SkinMe n'utilise pas de cookies de suivi ou publicitaires. Seulement ceux strictement nécessaires au fonctionnement de l'application.",
+    "cookiesTitle": "Cookies et publicité",
+    "cookiesDesc": "MakeSkins utilise Google AdSense pour afficher de la publicité. AdSense peut utiliser des cookies pour personnaliser les annonces selon tes intérêts. Tu peux accepter ou refuser les cookies publicitaires dans la bannière qui s'affiche à ton arrivée. Si tu refuses, seuls les cookies strictement nécessaires au fonctionnement de l'application seront utilisés.",
     "contactTitle": "Contact",
     "contactDesc": "Des questions ? Écris-nous à salvaescalerasperea@gmail.com.",
     "back": "← Retour à l'accueil"
@@ -95,9 +98,9 @@
   "Terms": {
     "title": "Conditions d'utilisation",
     "freeTitle": "Service entièrement gratuit",
-    "freeDesc": "SkinMe est gratuit. On ne facture pas la génération de skins Minecraft et n'exige pas d'inscription.",
+    "freeDesc": "MakeSkins est gratuit. On ne facture pas la génération de skins Minecraft et n'exige pas d'inscription.",
     "mojangTitle": "Non affilié à Mojang ni Microsoft",
-    "mojangDesc": "SkinMe est un projet indépendant et n'est pas affilié, sponsorisé ou approuvé par Mojang Studios ou Microsoft Corporation. Minecraft® est une marque déposée de Mojang Studios.",
+    "mojangDesc": "MakeSkins est un projet indépendant et n'est pas affilié, sponsorisé ou approuvé par Mojang Studios ou Microsoft Corporation. Minecraft® est une marque déposée de Mojang Studios.",
     "licenseTitle": "Usage personnel",
     "licenseDesc": "Les skins générés sont pour un usage personnel. Tu peux les utiliser dans toute version de Minecraft sans restriction.",
     "liabilityTitle": "Sans garanties",
@@ -136,8 +139,8 @@
     "genderFemale": "Fille"
   },
   "Editor": {
-    "metaTitle": "Éditeur de skin Minecraft — SkinMe",
-    "metaDesc": "Crée ton skin Minecraft pixel par pixel avec l'éditeur gratuit de SkinMe. Sans inscription."
+    "metaTitle": "Éditeur de skin Minecraft — MakeSkins",
+    "metaDesc": "Crée ton skin Minecraft pixel par pixel avec l'éditeur gratuit de MakeSkins. Sans inscription."
   },
   "NotFound": {
     "title": "404",
