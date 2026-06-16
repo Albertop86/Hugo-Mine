@@ -81,12 +81,15 @@ export default function SkinEditor() {
   const [canUndo,   setCanUndo]   = useState(false)
   const [canRedo,   setCanRedo]   = useState(false)
   const [skinUrl,   setSkinUrl]   = useState<string | null>(null)
-  const [showModal,   setShowModal]   = useState(false)
-  const [adClicked,   setAdClicked]   = useState(false)
-  const [skinName,    setSkinName]    = useState('')
-  const [fillCount,   setFillCount]   = useState(0)   // filled front-face pixels
-  const [uploadState, setUploadState] = useState<'idle'|'uploading'|'ok'|'error'|'done'>('idle')
-  const skinCompleteRef = useRef(false)  // mirror for async closure
+  const [showModal,      setShowModal]      = useState(false)
+  const [adClicked,      setAdClicked]      = useState(false)
+  const [fillCount,      setFillCount]      = useState(0)
+  const [autoUploadDone, setAutoUploadDone] = useState(false)
+  const [toast,          setToast]          = useState<string | null>(null)
+  const [dlState,        setDlState]        = useState<'idle'|'done'>('idle')
+  const skinCompleteRef  = useRef(false)
+  const autoUploadedRef  = useRef(false)  // prevent re-uploading same drawing
+  const toastTimer       = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const buf      = useRef(new Uint8ClampedArray(SKIN_W * SKIN_H * 4))
   const offRef   = useRef<HTMLCanvasElement | null>(null)
@@ -207,7 +210,34 @@ export default function SkinEditor() {
     canvas.height = mode === 'body' ? BODY_H * z : SKIN_H * z
   }
 
-  // ── Completion tracking ───────────────────────────────────────────────────
+  // ── Completion tracking + auto-gallery ───────────────────────────────────
+
+  function showToast(msg: string) {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast(msg)
+    toastTimer.current = setTimeout(() => setToast(null), 4000)
+  }
+
+  async function autoUploadToGallery() {
+    if (autoUploadedRef.current) return
+    autoUploadedRef.current = true
+    try {
+      const dataUrl = canvasToUrl()
+      const blob = await (await fetch(dataUrl)).blob()
+      const form = new FormData()
+      form.append('skin', new File([blob], 'skin.png', { type: 'image/png' }))
+      form.append('name', 'Anónimo')
+      const r = await fetch('/api/skins', { method: 'POST', body: form })
+      if (r.ok) {
+        setAutoUploadDone(true)
+        showToast('¡Skin añadida a la galería de la comunidad! 🎉')
+      } else {
+        autoUploadedRef.current = false
+      }
+    } catch {
+      autoUploadedRef.current = false
+    }
+  }
 
   function checkCompletion() {
     let filled = 0
@@ -219,7 +249,12 @@ export default function SkinEditor() {
       }
     }
     setFillCount(filled)
+    const wasComplete = skinCompleteRef.current
     skinCompleteRef.current = filled === TOTAL_FRONT_PX
+    // Trigger auto-upload the moment the skin becomes complete
+    if (!wasComplete && skinCompleteRef.current) {
+      autoUploadToGallery()
+    }
   }
 
   // ── History ───────────────────────────────────────────────────────────────
@@ -323,6 +358,8 @@ export default function SkinEditor() {
 
   function loadFromFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
+    autoUploadedRef.current = false
+    setAutoUploadDone(false)
     const img = new Image()
     img.onload = () => {
       const off=offRef.current!; const ctx=off.getContext('2d')!
@@ -333,37 +370,24 @@ export default function SkinEditor() {
     img.src = URL.createObjectURL(file); e.target.value = ''
   }
 
-  // ── Download + auto-gallery ───────────────────────────────────────────────
+  // ── Download ──────────────────────────────────────────────────────────────
 
   function startDownload() {
-    setShowModal(true); setAdClicked(false); setUploadState('idle'); setSkinName('')
+    setShowModal(true); setAdClicked(false); setDlState('idle')
   }
 
-  async function doDownload() {
-    const dataUrl = canvasToUrl()
-    const a = document.createElement('a'); a.href = dataUrl; a.download = 'minecraft-skin.png'; a.click()
-
-    if (skinCompleteRef.current) {
-      setUploadState('uploading')
-      try {
-        const blob = await (await fetch(dataUrl)).blob()
-        const form = new FormData()
-        form.append('skin', new File([blob], 'skin.png', { type: 'image/png' }))
-        form.append('name', skinName.trim() || 'Anónimo')
-        const r = await fetch('/api/skins', { method: 'POST', body: form })
-        setUploadState(r.ok ? 'ok' : 'error')
-      } catch {
-        setUploadState('error')
-      }
-    } else {
-      setUploadState('done')
-    }
+  function doDownload() {
+    const a = document.createElement('a')
+    a.href = canvasToUrl(); a.download = 'minecraft-skin.png'; a.click()
+    setDlState('done')
   }
 
   // ── Clear all ─────────────────────────────────────────────────────────────
 
   function clearAll() {
     buf.current.fill(0)
+    autoUploadedRef.current = false
+    setAutoUploadDone(false)
     syncOffscreen(); repaint(); pushHistory(); setSkinUrl(canvasToUrl())
   }
 
@@ -435,47 +459,33 @@ export default function SkinEditor() {
   return (
     <div className="flex flex-col gap-4">
 
-      {/* Download interstitial */}
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-50 px-5 py-3 rounded-2xl shadow-xl font-bold text-white text-sm pointer-events-none"
+          style={{ background: '#059669', transform: 'translateX(-50%)' }}>
+          {toast}
+        </div>
+      )}
+
+      {/* Download modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.72)' }}>
           <div className="rounded-3xl p-6 flex flex-col items-center gap-4 w-full max-w-sm shadow-2xl"
             style={{ background: 'var(--color-cream)', border: '2px solid var(--color-cream-dark)' }}>
 
-            {/* ── Post-upload states ── */}
-            {uploadState === 'ok' && (
+            {dlState === 'done' ? (
               <>
-                <p className="font-extrabold text-center" style={{ color: '#059669', fontFamily: 'var(--font-pixel)', fontSize: '0.85rem', lineHeight: 2 }}>
-                  ¡Descargada y en la galería! 🎉
-                </p>
-                <p className="text-xs text-center opacity-60" style={{ color: 'var(--color-earth)' }}>
-                  Tu skin ya aparece en la galería de la comunidad.
-                </p>
-                <a href={`/${locale}/gallery`}
-                  className="w-full py-3 rounded-2xl font-bold text-white text-sm text-center transition-all hover:opacity-90"
-                  style={{ background: 'var(--color-green-mine)' }}>
-                  Ver en la galería →
-                </a>
-                <button onClick={() => setShowModal(false)} className="text-xs opacity-40 hover:opacity-70" style={{ color: 'var(--color-earth)' }}>Cerrar</button>
-              </>
-            )}
-
-            {uploadState === 'uploading' && (
-              <p className="text-sm font-bold opacity-60" style={{ color: 'var(--color-earth)' }}>Guardando en la galería…</p>
-            )}
-
-            {(uploadState === 'error' || uploadState === 'done') && (
-              <>
-                <p className="font-extrabold text-center" style={{ color: 'var(--color-earth)', fontFamily: 'var(--font-pixel)', fontSize: '0.85rem', lineHeight: 2 }}>
+                <p className="font-extrabold text-center"
+                  style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.85rem', lineHeight: 2, color: 'var(--color-earth)' }}>
                   ✓ ¡Skin descargada!
                 </p>
-                {uploadState === 'error' && (
-                  <p className="text-xs text-center opacity-50" style={{ color: 'var(--color-earth)' }}>No se pudo guardar en la galería. Inténtalo más tarde.</p>
-                )}
-                {uploadState === 'done' && fillCount < TOTAL_FRONT_PX && (
-                  <p className="text-xs text-center opacity-50" style={{ color: 'var(--color-earth)' }}>
-                    Rellena los {TOTAL_FRONT_PX - fillCount} píxeles restantes para que aparezca en la galería.
-                  </p>
+                {autoUploadDone && (
+                  <a href={`/${locale}/gallery`}
+                    className="w-full py-3 rounded-2xl font-bold text-white text-sm text-center transition-all hover:opacity-90"
+                    style={{ background: 'var(--color-green-mine)' }}>
+                    Ver en la galería →
+                  </a>
                 )}
                 <button onClick={() => setShowModal(false)}
                   className="w-full py-3 rounded-2xl font-bold text-sm"
@@ -483,41 +493,17 @@ export default function SkinEditor() {
                   Cerrar
                 </button>
               </>
-            )}
-
-            {/* ── Pre-download flow ── */}
-            {uploadState === 'idle' && (
+            ) : (
               <>
                 <p className="font-extrabold text-center"
                   style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.85rem', lineHeight: 2, color: 'var(--color-earth)' }}>
                   ¡Tu skin está lista! 🎉
                 </p>
 
-                {/* Complete: show name input + gallery notice */}
-                {skinCompleteRef.current ? (
-                  <div className="w-full flex flex-col gap-2 p-3 rounded-2xl"
-                    style={{ background: '#d1fae5', border: '2px solid #34d399' }}>
-                    <p className="text-xs font-bold text-center" style={{ color: '#065f46' }}>
-                      ✨ Se guardará automáticamente en la galería
-                    </p>
-                    <input
-                      type="text" maxLength={32} value={skinName}
-                      onChange={e => setSkinName(e.target.value)}
-                      placeholder="Nombre de tu skin (opcional)"
-                      className="w-full px-3 py-2 rounded-xl text-sm border-2 outline-none"
-                      style={{ borderColor: '#6ee7b7', background: 'white', color: 'var(--color-earth)' }}
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full p-3 rounded-2xl text-center"
-                    style={{ background: '#fef3c7', border: '2px solid #fcd34d' }}>
-                    <p className="text-xs font-bold" style={{ color: '#92400e' }}>
-                      ⚠️ {TOTAL_FRONT_PX - fillCount} píxeles sin rellenar
-                    </p>
-                    <p className="text-xs opacity-70 mt-0.5" style={{ color: '#92400e' }}>
-                      Completa todos los píxeles para que aparezca en la galería
-                    </p>
-                  </div>
+                {autoUploadDone && (
+                  <p className="text-xs text-center font-bold" style={{ color: '#059669' }}>
+                    ✨ Ya está en la galería de la comunidad
+                  </p>
                 )}
 
                 {/* Ad block */}
@@ -542,9 +528,7 @@ export default function SkinEditor() {
                 <button onClick={adClicked ? doDownload : undefined} disabled={!adClicked}
                   className="w-full py-4 rounded-2xl font-bold text-white text-base transition-all disabled:opacity-40 shadow-md"
                   style={{ background: 'var(--color-green-mine)' }}>
-                  {adClicked
-                    ? (skinCompleteRef.current ? '⬇ Descargar y compartir' : '⬇ Descargar skin')
-                    : '🔒 Haz clic en el anuncio primero'}
+                  {adClicked ? '⬇ Descargar skin' : '🔒 Haz clic en el anuncio primero'}
                 </button>
 
                 <button onClick={() => setShowModal(false)} className="text-xs opacity-40 hover:opacity-70" style={{ color: 'var(--color-earth)' }}>Cancelar</button>
@@ -671,7 +655,11 @@ export default function SkinEditor() {
               <div className="w-full flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold opacity-60" style={{ color: 'var(--color-earth)' }}>
-                    {fillCount === TOTAL_FRONT_PX ? '✓ Lista para la galería' : `${fillCount} / ${TOTAL_FRONT_PX} píxeles`}
+                    {autoUploadDone
+                      ? '✓ En la galería'
+                      : fillCount === TOTAL_FRONT_PX
+                        ? '⏳ Guardando...'
+                        : `${fillCount} / ${TOTAL_FRONT_PX} píxeles`}
                   </span>
                   <span className="text-xs font-bold" style={{ color: fillCount === TOTAL_FRONT_PX ? '#059669' : 'var(--color-earth)', opacity: fillCount === TOTAL_FRONT_PX ? 1 : 0.5 }}>
                     {Math.round(fillCount / TOTAL_FRONT_PX * 100)}%
@@ -681,7 +669,7 @@ export default function SkinEditor() {
                   <div className="h-full rounded-full transition-all"
                     style={{
                       width: `${fillCount / TOTAL_FRONT_PX * 100}%`,
-                      background: fillCount === TOTAL_FRONT_PX ? '#059669' : 'var(--color-green-mine)',
+                      background: autoUploadDone ? '#059669' : fillCount === TOTAL_FRONT_PX ? '#34d399' : 'var(--color-green-mine)',
                     }} />
                 </div>
               </div>
