@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { getLocale } from 'next-intl/server'
 import Link from 'next/link'
 import SkinDisplay from '@/components/SkinDisplay'
+import AmazonBox from '@/components/AmazonBox'
 import { getCharacterOfTheDay } from '@/lib/characterOfTheDay'
 
 export const revalidate = 3600
@@ -100,6 +101,9 @@ export default async function SkinDelDiaPage() {
           </div>
         )}
       </div>
+
+      {/* Amazon affiliate */}
+      <AmazonBox characterName={name} category={char.category} locale={locale} />
 
       {/* Intro */}
       {content?.intro && (

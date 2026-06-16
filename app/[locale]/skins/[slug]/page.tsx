@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { getCharacterBySlug, getAllCharacterSlugs, CHARACTERS } from '@/lib/characterOfTheDay'
 import { routing } from '@/lib/i18n/routing'
 import SkinDisplay from '@/components/SkinDisplay'
+import AmazonBox from '@/components/AmazonBox'
 
 export const revalidate = 86400
 
@@ -241,6 +242,9 @@ export default async function SkinCharacterPage({ params }: Props) {
             📸 {L('createBtn')}
           </Link>
         </div>
+
+        {/* Amazon affiliate */}
+        <AmazonBox characterName={name} category={char.category} locale={locale} />
 
         {/* Similar characters */}
         {similar.length > 0 && (

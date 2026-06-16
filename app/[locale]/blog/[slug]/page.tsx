@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { BLOG_POSTS, type Locale } from '@/lib/blogPosts'
 import { getPost, listSlugs, type BlogPost } from '@/lib/blogStore'
+import AmazonBox from '@/components/AmazonBox'
 import { routing } from '@/lib/i18n/routing'
 
 export const revalidate = 3600
@@ -168,6 +169,9 @@ export default async function BlogPostPage({ params }: Props) {
              locale === 'pt' ? 'Criar minha skin →' : 'Create my skin →'}
           </a>
         </div>
+
+        {/* Amazon affiliate */}
+        <AmazonBox locale={locale} />
 
         {/* Related */}
         <div className="mt-10 pt-8" style={{ borderTop: '2px solid var(--color-cream-dark)' }}>
