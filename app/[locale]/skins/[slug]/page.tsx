@@ -3,6 +3,7 @@ import { getLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getCharacterBySlug, getAllCharacterSlugs, CHARACTERS } from '@/lib/characterOfTheDay'
+import { getSkinUrl } from '@/lib/getSkinUrl'
 import { routing } from '@/lib/i18n/routing'
 import SkinDisplay from '@/components/SkinDisplay'
 import AmazonBox from '@/components/AmazonBox'
@@ -119,6 +120,9 @@ export default async function SkinCharacterPage({ params }: Props) {
   const content = (data?.[locale as keyof CharacterDayData] ?? data?.es) as CharacterDayContent | undefined
   const catColor = CATEGORY_COLORS[char.category] ?? 'var(--color-green-mine)'
 
+  // Resolve skin URL — generate if not yet in Blob
+  const skinUrl = data?.skinUrl ?? await getSkinUrl(char)
+
   // Similar characters (same category)
   const similar = CHARACTERS.filter(c => c.category === char.category && c.slug !== char.slug).slice(0, 4)
 
@@ -165,9 +169,9 @@ export default async function SkinCharacterPage({ params }: Props) {
 
         {/* Skin preview + descarga */}
         <div className="mb-8">
-          {(data?.skinUrl || char.skinFile) ? (
+          {skinUrl ? (
             <SkinDisplay
-              skinUrl={data?.skinUrl ?? `/skins/premade/${char.skinFile}.png`}
+              skinUrl={skinUrl}
               name={name}
               downloadLabel={L('download')}
               downloadFilename={`${char.slug}-minecraft-skin.png`}
@@ -175,12 +179,8 @@ export default async function SkinCharacterPage({ params }: Props) {
             />
           ) : (
             <div className="rounded-2xl p-6 text-center" style={{ background: catColor }}>
-              <a href={`/${locale}/gallery`}
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all hover:opacity-90"
-                style={{ background: 'white', color: catColor }}>
-                ⬇️ {L('download')}
-              </a>
-              <p className="text-white text-xs mt-3 opacity-80">{L('category')}: {char.category}</p>
+              <p className="text-white font-bold text-lg mb-1">{name}</p>
+              <p className="text-white text-sm opacity-80">{L('notFeatured')}</p>
             </div>
           )}
         </div>

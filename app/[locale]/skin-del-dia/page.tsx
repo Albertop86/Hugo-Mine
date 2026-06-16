@@ -4,6 +4,7 @@ import Link from 'next/link'
 import SkinDisplay from '@/components/SkinDisplay'
 import AmazonBox from '@/components/AmazonBox'
 import { getCharacterOfTheDay } from '@/lib/characterOfTheDay'
+import { getSkinUrl } from '@/lib/getSkinUrl'
 
 export const revalidate = 3600
 
@@ -55,10 +56,12 @@ export default async function SkinDelDiaPage() {
   const blobIsFresh  = data?.date === todayStr
   const localChar    = getCharacterOfTheDay(new Date())
 
-  const char   = blobIsFresh ? data.character : localChar
+  const char    = blobIsFresh ? data.character : localChar
   const content = blobIsFresh ? (data?.[locale as string] ?? data?.es) : null
+  const name    = locale === 'es' ? char.nameEs : char.nameEn
 
-  const name = locale === 'es' ? char.nameEs : char.nameEn
+  // Resolve skin — use blob data if fresh, else generate on demand
+  const skinUrl = (blobIsFresh && data?.skinUrl) ? data.skinUrl : await getSkinUrl(char)
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
@@ -81,9 +84,9 @@ export default async function SkinDelDiaPage() {
 
       {/* Skin preview + descarga */}
       <div className="mb-8">
-        {(data?.skinUrl || char.skinFile) ? (
+        {skinUrl ? (
           <SkinDisplay
-            skinUrl={data?.skinUrl ?? `/skins/premade/${char.skinFile}.png`}
+            skinUrl={skinUrl}
             name={name}
             downloadLabel={L('download')}
             downloadFilename={`${char.slug}-minecraft-skin.png`}
@@ -91,13 +94,7 @@ export default async function SkinDelDiaPage() {
         ) : (
           <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--color-cream)', border: '2px solid var(--color-cream-dark)' }}>
             <div className="text-5xl mb-3">{char.emoji}</div>
-            <p className="font-bold mb-1" style={{ color: 'var(--color-earth)' }}>{name}</p>
-            <p className="text-sm opacity-60" style={{ color: 'var(--color-earth)' }}>
-              {locale === 'es' ? 'Skin generándose... vuelve en unos minutos' :
-               locale === 'fr' ? 'Skin en cours de génération...' :
-               locale === 'pt' ? 'Skin sendo gerado...' :
-               'Skin generating... check back in a few minutes'}
-            </p>
+            <p className="font-bold" style={{ color: 'var(--color-earth)' }}>{name}</p>
           </div>
         )}
       </div>
