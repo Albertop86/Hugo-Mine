@@ -47,6 +47,7 @@ async function writeSkinsBlob(skins: CommunitySkin[]) {
     access: 'public',
     addRandomSuffix: false,
     contentType: 'application/json',
+    allowOverwrite: true,
   })
 }
 
@@ -56,6 +57,7 @@ async function uploadImageBlob(id: string, buffer: Buffer): Promise<string> {
     access: 'public',
     addRandomSuffix: false,
     contentType: 'image/png',
+    allowOverwrite: true,
   })
   return url
 }
