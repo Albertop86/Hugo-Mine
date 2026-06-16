@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useLocale } from 'next-intl'
 import CharacterPreview from './CharacterPreview'
 
 type Tool    = 'pencil' | 'eraser' | 'fill' | 'eyedropper'
@@ -66,7 +67,12 @@ function floodFill(buf: Uint8ClampedArray, x: number, y: number, fill: [number,n
   }
 }
 
+// Total front-face UV pixels used to measure completion
+const TOTAL_FRONT_PX = BODY_PARTS.reduce((s, p) => s + p.bw * p.bh, 0)
+
 export default function SkinEditor() {
+  const locale = useLocale()
+
   const [tool,      setTool]      = useState<Tool>('pencil')
   const [color,     setColor]     = useState('#4a90d9')
   const [viewMode,  setViewMode]  = useState<ViewMode>('body')
@@ -77,9 +83,10 @@ export default function SkinEditor() {
   const [skinUrl,   setSkinUrl]   = useState<string | null>(null)
   const [showModal,   setShowModal]   = useState(false)
   const [adClicked,   setAdClicked]   = useState(false)
-  const [downloaded,  setDownloaded]  = useState(false)
-  const [shareState,  setShareState]  = useState<'idle'|'sharing'|'ok'|'error'>('idle')
-  const [shareName,   setShareName]   = useState('')
+  const [skinName,    setSkinName]    = useState('')
+  const [fillCount,   setFillCount]   = useState(0)   // filled front-face pixels
+  const [uploadState, setUploadState] = useState<'idle'|'uploading'|'ok'|'error'|'done'>('idle')
+  const skinCompleteRef = useRef(false)  // mirror for async closure
 
   const buf      = useRef(new Uint8ClampedArray(SKIN_W * SKIN_H * 4))
   const offRef   = useRef<HTMLCanvasElement | null>(null)
@@ -200,6 +207,21 @@ export default function SkinEditor() {
     canvas.height = mode === 'body' ? BODY_H * z : SKIN_H * z
   }
 
+  // ── Completion tracking ───────────────────────────────────────────────────
+
+  function checkCompletion() {
+    let filled = 0
+    for (const part of BODY_PARTS) {
+      for (let dy = 0; dy < part.bh; dy++) {
+        for (let dx = 0; dx < part.bw; dx++) {
+          if (buf.current[pIdx(part.ux + dx, part.uy + dy) + 3] > 0) filled++
+        }
+      }
+    }
+    setFillCount(filled)
+    skinCompleteRef.current = filled === TOTAL_FRONT_PX
+  }
+
   // ── History ───────────────────────────────────────────────────────────────
 
   function pushHistory() {
@@ -208,6 +230,7 @@ export default function SkinEditor() {
     if (next.length > 50) next.shift()
     hist.current = next; histPos.current = next.length - 1
     setCanUndo(histPos.current > 0); setCanRedo(false)
+    checkCompletion()
   }
 
   function undo() {
@@ -310,27 +333,30 @@ export default function SkinEditor() {
     img.src = URL.createObjectURL(file); e.target.value = ''
   }
 
-  // ── Download interstitial ─────────────────────────────────────────────────
+  // ── Download + auto-gallery ───────────────────────────────────────────────
 
-  function startDownload() { setShowModal(true); setAdClicked(false); setDownloaded(false); setShareState('idle'); setShareName('') }
-  function doDownload() {
-    const a = document.createElement('a'); a.href=canvasToUrl(); a.download='minecraft-skin.png'; a.click()
-    setDownloaded(true)
+  function startDownload() {
+    setShowModal(true); setAdClicked(false); setUploadState('idle'); setSkinName('')
   }
 
-  async function doShare() {
-    setShareState('sharing')
-    try {
-      const dataUrl = canvasToUrl()
-      const res = await fetch(dataUrl)
-      const blob = await res.blob()
-      const form = new FormData()
-      form.append('skin', new File([blob], 'skin.png', { type: 'image/png' }))
-      form.append('name', shareName.trim() || 'Anónimo')
-      const r = await fetch('/api/skins', { method: 'POST', body: form })
-      setShareState(r.ok ? 'ok' : 'error')
-    } catch {
-      setShareState('error')
+  async function doDownload() {
+    const dataUrl = canvasToUrl()
+    const a = document.createElement('a'); a.href = dataUrl; a.download = 'minecraft-skin.png'; a.click()
+
+    if (skinCompleteRef.current) {
+      setUploadState('uploading')
+      try {
+        const blob = await (await fetch(dataUrl)).blob()
+        const form = new FormData()
+        form.append('skin', new File([blob], 'skin.png', { type: 'image/png' }))
+        form.append('name', skinName.trim() || 'Anónimo')
+        const r = await fetch('/api/skins', { method: 'POST', body: form })
+        setUploadState(r.ok ? 'ok' : 'error')
+      } catch {
+        setUploadState('error')
+      }
+    } else {
+      setUploadState('done')
     }
   }
 
@@ -413,73 +439,116 @@ export default function SkinEditor() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.72)' }}>
-          <div className="rounded-3xl p-6 flex flex-col items-center gap-5 w-full max-w-sm shadow-2xl"
+          <div className="rounded-3xl p-6 flex flex-col items-center gap-4 w-full max-w-sm shadow-2xl"
             style={{ background: 'var(--color-cream)', border: '2px solid var(--color-cream-dark)' }}>
-            <p className="font-extrabold text-earth text-center"
-              style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.9rem', lineHeight: 2 }}>
-              ¡Tu skin está listo! 🎉
-            </p>
-            {/* ═══ AdSense slot — replace with your ad unit ═══ */}
-            <div
-              onClick={() => setAdClicked(true)}
-              className="w-full rounded-2xl flex flex-col items-center justify-center gap-1 transition-all"
-              style={{
-                height: 120,
-                background: adClicked ? '#d1fae5' : '#f0f0f0',
-                border: adClicked ? '2px solid #34d399' : '2px dashed #d0d0d0',
-                cursor: adClicked ? 'default' : 'pointer',
-              }}>
-              {adClicked
-                ? <span className="text-sm font-bold" style={{ color: '#059669' }}>✓ ¡Gracias!</span>
-                : <>
-                    <span className="text-xs font-bold opacity-50 text-earth">Publicidad</span>
-                    <span className="text-xs opacity-40 text-earth">👆 Haz clic aquí para desbloquear la descarga</span>
-                  </>
-              }
-            </div>
-            {/* ════════════════════════════════════════════════ */}
-            <button onClick={adClicked ? doDownload : undefined} disabled={!adClicked}
-              className="w-full py-4 rounded-2xl font-bold text-white text-base transition-all disabled:opacity-40 shadow-md"
-              style={{ background: 'var(--color-green-mine)' }}>
-              {adClicked ? '⬇ Descargar skin' : '🔒 Haz clic en el anuncio primero'}
-            </button>
 
-            {/* Share section — appears after download */}
-            {downloaded && (
-              <div className="w-full flex flex-col gap-2 pt-1" style={{ borderTop: '1px solid var(--color-cream-dark)' }}>
-                {shareState === 'ok' ? (
-                  <p className="text-center text-sm font-bold" style={{ color: '#059669' }}>¡Compartida con la comunidad! 🎉</p>
-                ) : shareState === 'error' ? (
-                  <p className="text-center text-xs opacity-60" style={{ color: 'var(--color-earth)' }}>No se pudo compartir. Inténtalo más tarde.</p>
-                ) : (
-                  <>
-                    <p className="text-xs font-bold opacity-60 text-center" style={{ color: 'var(--color-earth)' }}>¿Compartir con la comunidad?</p>
-                    <input
-                      type="text" maxLength={32} value={shareName}
-                      onChange={e => setShareName(e.target.value)}
-                      placeholder="Nombre de tu skin (opcional)"
-                      className="w-full px-3 py-2 rounded-xl text-sm border-2 outline-none"
-                      style={{ borderColor: 'var(--color-brown-dirt)', background: 'var(--color-cream)', color: 'var(--color-earth)' }}
-                    />
-                    <div className="flex gap-2">
-                      <button onClick={doShare} disabled={shareState==='sharing'}
-                        className="flex-1 py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50"
-                        style={{ background: 'var(--color-green-mine)' }}>
-                        {shareState==='sharing' ? '…' : '🌍 Compartir'}
-                      </button>
-                      <button onClick={() => setShowModal(false)}
-                        className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
-                        style={{ background: 'var(--color-cream-dark)', color: 'var(--color-earth)', border: '2px solid var(--color-brown-dirt)' }}>
-                        No, gracias
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+            {/* ── Post-upload states ── */}
+            {uploadState === 'ok' && (
+              <>
+                <p className="font-extrabold text-center" style={{ color: '#059669', fontFamily: 'var(--font-pixel)', fontSize: '0.85rem', lineHeight: 2 }}>
+                  ¡Descargada y en la galería! 🎉
+                </p>
+                <p className="text-xs text-center opacity-60" style={{ color: 'var(--color-earth)' }}>
+                  Tu skin ya aparece en la galería de la comunidad.
+                </p>
+                <a href={`/${locale}/gallery`}
+                  className="w-full py-3 rounded-2xl font-bold text-white text-sm text-center transition-all hover:opacity-90"
+                  style={{ background: 'var(--color-green-mine)' }}>
+                  Ver en la galería →
+                </a>
+                <button onClick={() => setShowModal(false)} className="text-xs opacity-40 hover:opacity-70" style={{ color: 'var(--color-earth)' }}>Cerrar</button>
+              </>
             )}
 
-            {!downloaded && (
-              <button onClick={() => setShowModal(false)} className="text-xs opacity-40 hover:opacity-70 text-earth">Cancelar</button>
+            {uploadState === 'uploading' && (
+              <p className="text-sm font-bold opacity-60" style={{ color: 'var(--color-earth)' }}>Guardando en la galería…</p>
+            )}
+
+            {(uploadState === 'error' || uploadState === 'done') && (
+              <>
+                <p className="font-extrabold text-center" style={{ color: 'var(--color-earth)', fontFamily: 'var(--font-pixel)', fontSize: '0.85rem', lineHeight: 2 }}>
+                  ✓ ¡Skin descargada!
+                </p>
+                {uploadState === 'error' && (
+                  <p className="text-xs text-center opacity-50" style={{ color: 'var(--color-earth)' }}>No se pudo guardar en la galería. Inténtalo más tarde.</p>
+                )}
+                {uploadState === 'done' && fillCount < TOTAL_FRONT_PX && (
+                  <p className="text-xs text-center opacity-50" style={{ color: 'var(--color-earth)' }}>
+                    Rellena los {TOTAL_FRONT_PX - fillCount} píxeles restantes para que aparezca en la galería.
+                  </p>
+                )}
+                <button onClick={() => setShowModal(false)}
+                  className="w-full py-3 rounded-2xl font-bold text-sm"
+                  style={{ background: 'var(--color-cream-dark)', color: 'var(--color-earth)', border: '2px solid var(--color-brown-dirt)' }}>
+                  Cerrar
+                </button>
+              </>
+            )}
+
+            {/* ── Pre-download flow ── */}
+            {uploadState === 'idle' && (
+              <>
+                <p className="font-extrabold text-center"
+                  style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.85rem', lineHeight: 2, color: 'var(--color-earth)' }}>
+                  ¡Tu skin está lista! 🎉
+                </p>
+
+                {/* Complete: show name input + gallery notice */}
+                {skinCompleteRef.current ? (
+                  <div className="w-full flex flex-col gap-2 p-3 rounded-2xl"
+                    style={{ background: '#d1fae5', border: '2px solid #34d399' }}>
+                    <p className="text-xs font-bold text-center" style={{ color: '#065f46' }}>
+                      ✨ Se guardará automáticamente en la galería
+                    </p>
+                    <input
+                      type="text" maxLength={32} value={skinName}
+                      onChange={e => setSkinName(e.target.value)}
+                      placeholder="Nombre de tu skin (opcional)"
+                      className="w-full px-3 py-2 rounded-xl text-sm border-2 outline-none"
+                      style={{ borderColor: '#6ee7b7', background: 'white', color: 'var(--color-earth)' }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full p-3 rounded-2xl text-center"
+                    style={{ background: '#fef3c7', border: '2px solid #fcd34d' }}>
+                    <p className="text-xs font-bold" style={{ color: '#92400e' }}>
+                      ⚠️ {TOTAL_FRONT_PX - fillCount} píxeles sin rellenar
+                    </p>
+                    <p className="text-xs opacity-70 mt-0.5" style={{ color: '#92400e' }}>
+                      Completa todos los píxeles para que aparezca en la galería
+                    </p>
+                  </div>
+                )}
+
+                {/* Ad block */}
+                <div
+                  onClick={() => setAdClicked(true)}
+                  className="w-full rounded-2xl flex flex-col items-center justify-center gap-1 transition-all"
+                  style={{
+                    height: 100,
+                    background: adClicked ? '#d1fae5' : '#f0f0f0',
+                    border: adClicked ? '2px solid #34d399' : '2px dashed #d0d0d0',
+                    cursor: adClicked ? 'default' : 'pointer',
+                  }}>
+                  {adClicked
+                    ? <span className="text-sm font-bold" style={{ color: '#059669' }}>✓ ¡Gracias!</span>
+                    : <>
+                        <span className="text-xs font-bold opacity-50" style={{ color: 'var(--color-earth)' }}>Publicidad</span>
+                        <span className="text-xs opacity-40" style={{ color: 'var(--color-earth)' }}>👆 Haz clic aquí para desbloquear</span>
+                      </>
+                  }
+                </div>
+
+                <button onClick={adClicked ? doDownload : undefined} disabled={!adClicked}
+                  className="w-full py-4 rounded-2xl font-bold text-white text-base transition-all disabled:opacity-40 shadow-md"
+                  style={{ background: 'var(--color-green-mine)' }}>
+                  {adClicked
+                    ? (skinCompleteRef.current ? '⬇ Descargar y compartir' : '⬇ Descargar skin')
+                    : '🔒 Haz clic en el anuncio primero'}
+                </button>
+
+                <button onClick={() => setShowModal(false)} className="text-xs opacity-40 hover:opacity-70" style={{ color: 'var(--color-earth)' }}>Cancelar</button>
+              </>
             )}
           </div>
         </div>
@@ -591,12 +660,30 @@ export default function SkinEditor() {
             </div>
           </div>
 
-          {/* Preview */}
+          {/* Preview + completion */}
           {skinUrl && (
-            <div className="rounded-2xl p-4 flex flex-col items-center gap-2" style={{ background:'var(--color-cream-dark)' }}>
+            <div className="rounded-2xl p-4 flex flex-col items-center gap-3" style={{ background:'var(--color-cream-dark)' }}>
               <p className="text-xs font-extrabold tracking-wide uppercase opacity-60 text-earth">Vista previa</p>
               <div className="rounded-xl p-3" style={{ background:'#5a6a7a' }}>
                 <CharacterPreview skinUrl={skinUrl} />
+              </div>
+              {/* Completion bar */}
+              <div className="w-full flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold opacity-60" style={{ color: 'var(--color-earth)' }}>
+                    {fillCount === TOTAL_FRONT_PX ? '✓ Lista para la galería' : `${fillCount} / ${TOTAL_FRONT_PX} píxeles`}
+                  </span>
+                  <span className="text-xs font-bold" style={{ color: fillCount === TOTAL_FRONT_PX ? '#059669' : 'var(--color-earth)', opacity: fillCount === TOTAL_FRONT_PX ? 1 : 0.5 }}>
+                    {Math.round(fillCount / TOTAL_FRONT_PX * 100)}%
+                  </span>
+                </div>
+                <div className="w-full rounded-full overflow-hidden" style={{ height: 6, background: 'var(--color-cream)' }}>
+                  <div className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${fillCount / TOTAL_FRONT_PX * 100}%`,
+                      background: fillCount === TOTAL_FRONT_PX ? '#059669' : 'var(--color-green-mine)',
+                    }} />
+                </div>
               </div>
             </div>
           )}
