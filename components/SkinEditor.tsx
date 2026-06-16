@@ -123,52 +123,62 @@ export default function SkinEditor() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
     if (mode === 'body') {
-      // Checkered background for empty areas
-      for (let by = 0; by < BODY_H; by++) {
-        for (let bx = 0; bx < BODY_W; bx++) {
-          ctx.fillStyle = (Math.floor(bx/2)+Math.floor(by/2))%2===0 ? '#d8d8d8' : '#c0c0c0'
-          ctx.fillRect(bx*z, by*z, z, z)
-        }
-      }
+      // Solid dark background
+      ctx.fillStyle = '#1e2433'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      // Draw each body part from the UV buffer
+      // Checkered only within body-part regions (transparent pixels)
       for (const part of BODY_PARTS) {
         for (let dy = 0; dy < part.bh; dy++) {
           for (let dx = 0; dx < part.bw; dx++) {
             const i = pIdx(part.ux+dx, part.uy+dy)
             const a = buf.current[i+3]
-            // Checkered underneath transparent pixels
+            const px = (part.bx+dx)*z, py = (part.by+dy)*z
             if (a === 0) {
-              const bx = part.bx+dx, by2 = part.by+dy
-              ctx.fillStyle = (Math.floor(bx/2)+Math.floor(by2/2))%2===0 ? '#e8e8e8' : '#d0d0d0'
-              ctx.fillRect(bx*z, by2*z, z, z)
+              ctx.fillStyle = (Math.floor(dx/2)+Math.floor(dy/2))%2===0 ? '#2e3545' : '#252c3a'
+              ctx.fillRect(px, py, z, z)
             } else {
               ctx.fillStyle = `rgba(${buf.current[i]},${buf.current[i+1]},${buf.current[i+2]},${a/255})`
-              ctx.fillRect((part.bx+dx)*z, (part.by+dy)*z, z, z)
+              ctx.fillRect(px, py, z, z)
             }
           }
         }
       }
 
-      // Grid lines
+      // Pixel grid — subtle white lines so they show on the dark bg
       if (gridRef.current && z >= 8) {
-        ctx.strokeStyle = 'rgba(0,0,0,0.08)'
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)'
         ctx.lineWidth = 0.5
         for (let x = 0; x <= BODY_W; x++) { ctx.beginPath(); ctx.moveTo(x*z,0); ctx.lineTo(x*z,BODY_H*z); ctx.stroke() }
         for (let y = 0; y <= BODY_H; y++) { ctx.beginPath(); ctx.moveTo(0,y*z); ctx.lineTo(BODY_W*z,y*z); ctx.stroke() }
       }
 
-      // Body part outlines + labels
+      // Body part outlines — bright border so they're always visible
       for (const part of BODY_PARTS) {
-        ctx.strokeStyle = 'rgba(0,0,0,0.22)'
+        // outer glow in white
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'
+        ctx.lineWidth = 3
+        ctx.strokeRect(part.bx*z+0.5, part.by*z+0.5, part.bw*z-1, part.bh*z-1)
+        // sharp inner border
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)'
         ctx.lineWidth = 1
         ctx.strokeRect(part.bx*z+0.5, part.by*z+0.5, part.bw*z-1, part.bh*z-1)
+
         if (z >= 12) {
-          ctx.fillStyle = 'rgba(0,0,0,0.28)'
-          ctx.font = `bold ${Math.max(8, Math.round(z*0.5))}px sans-serif`
+          const cx = (part.bx + part.bw/2)*z
+          const cy = (part.by + part.bh/2)*z
+          const fs = Math.max(8, Math.round(z*0.44))
+          ctx.font = `bold ${fs}px system-ui, sans-serif`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
-          ctx.fillText(part.name, (part.bx + part.bw/2)*z, (part.by + part.bh/2)*z)
+          const tw = ctx.measureText(part.name).width
+          const pad = 4
+          // pill background
+          ctx.fillStyle = 'rgba(0,0,0,0.52)'
+          ctx.fillRect(cx - tw/2 - pad, cy - fs/2 - pad/2, tw + pad*2, fs + pad)
+          // label text
+          ctx.fillStyle = 'rgba(255,255,255,0.92)'
+          ctx.fillText(part.name, cx, cy)
         }
       }
 
@@ -678,7 +688,7 @@ export default function SkinEditor() {
           {skinUrl && (
             <div className="rounded-2xl p-4 flex flex-col items-center gap-3" style={{ background:'var(--color-cream-dark)' }}>
               <p className="text-xs font-extrabold tracking-wide uppercase opacity-60 text-earth">Vista previa</p>
-              <div className="rounded-xl p-3" style={{ background:'#5a6a7a' }}>
+              <div className="rounded-xl p-3" style={{ background:'#1e2433' }}>
                 <CharacterPreview skinUrl={skinUrl} />
               </div>
               {/* Completion bar */}

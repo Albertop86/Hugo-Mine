@@ -22,7 +22,7 @@ export default function SkinDisplay({ skinUrl, name, downloadLabel, downloadFile
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="rounded-2xl p-6 flex items-center justify-center" style={{ background: '#3a4a5a', minHeight: 200 }}>
+      <div className="rounded-2xl p-6 flex items-center justify-center" style={{ background: '#1e2433', minHeight: 200 }}>
         <CharacterPreview skinUrl={skinUrl} />
       </div>
       <button

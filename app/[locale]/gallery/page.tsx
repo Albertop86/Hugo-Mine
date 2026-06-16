@@ -40,7 +40,7 @@ function SkinCard({ url, name, badge, filename }: {
           {badge}
         </span>
       )}
-      <div className="rounded-xl p-3 w-full flex items-center justify-center" style={{ background: '#5a6a7a', minHeight: 120 }}>
+      <div className="rounded-xl p-3 w-full flex items-center justify-center" style={{ background: '#1e2433', minHeight: 120 }}>
         <CharacterPreview skinUrl={url} />
       </div>
       <p className="font-bold text-sm text-center truncate w-full" style={{ color: 'var(--color-earth)' }}>{name}</p>
