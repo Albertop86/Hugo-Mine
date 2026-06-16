@@ -103,3 +103,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
   }
 }
+
+// ── PUT /api/skins — update image + name for an existing entry ────────
+export async function PUT(req: NextRequest) {
+  try {
+    const form = await req.formData()
+    const id   = (form.get('id') as string | null)?.trim()
+    const file = form.get('skin') as File | null
+    const name = ((form.get('name') as string | null) ?? '').slice(0, 32).trim() || 'Anónimo'
+
+    if (!id || !file || file.type !== 'image/png' || file.size > 60_000) {
+      return NextResponse.json({ error: 'Invalid' }, { status: 400 })
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer())
+
+    if (USE_BLOB) {
+      const { put } = await import('@vercel/blob')
+      await put(`skinme/community/${id}.png`, buffer, {
+        access: 'public', addRandomSuffix: false, contentType: 'image/png', allowOverwrite: true,
+      })
+      const skins = await readSkinsBlob()
+      const idx = skins.findIndex(s => s.id === id)
+      if (idx >= 0) { skins[idx].name = name; await writeSkinsBlob(skins) }
+    } else {
+      mkdirSync(SKINS_DIR, { recursive: true })
+      writeFileSync(join(SKINS_DIR, `${id}.png`), buffer)
+      const skins = readSkinsFs()
+      const idx = skins.findIndex(s => s.id === id)
+      if (idx >= 0) { skins[idx].name = name; writeSkinsFs(skins) }
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('[PUT /api/skins]', err)
+    return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+  }
+}

@@ -87,8 +87,12 @@ export default function SkinEditor() {
   const [autoUploadDone, setAutoUploadDone] = useState(false)
   const [toast,          setToast]          = useState<string | null>(null)
   const [dlState,        setDlState]        = useState<'idle'|'done'>('idle')
+  const [skinName,       setSkinName]       = useState('')
+  const skinNameRef      = useRef('')         // for use inside async/timer closures
   const skinCompleteRef  = useRef(false)
-  const autoUploadedRef  = useRef(false)  // prevent re-uploading same drawing
+  const autoUploadedRef  = useRef(false)
+  const uploadedIdRef    = useRef<string | null>(null)
+  const debounceTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const toastTimer       = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const buf      = useRef(new Uint8ClampedArray(SKIN_W * SKIN_H * 4))
@@ -226,9 +230,11 @@ export default function SkinEditor() {
       const blob = await (await fetch(dataUrl)).blob()
       const form = new FormData()
       form.append('skin', new File([blob], 'skin.png', { type: 'image/png' }))
-      form.append('name', 'Anónimo')
+      form.append('name', skinNameRef.current || 'Anónimo')
       const r = await fetch('/api/skins', { method: 'POST', body: form })
       if (r.ok) {
+        const data = await r.json()
+        uploadedIdRef.current = data.skin?.id ?? null
         setAutoUploadDone(true)
         showToast('¡Skin añadida a la galería de la comunidad! 🎉')
       } else {
@@ -237,6 +243,25 @@ export default function SkinEditor() {
     } catch {
       autoUploadedRef.current = false
     }
+  }
+
+  async function reUploadToGallery() {
+    const id = uploadedIdRef.current
+    if (!id || !skinCompleteRef.current) return
+    try {
+      const dataUrl = canvasToUrl()
+      const blob = await (await fetch(dataUrl)).blob()
+      const form = new FormData()
+      form.append('id', id)
+      form.append('skin', new File([blob], 'skin.png', { type: 'image/png' }))
+      form.append('name', skinNameRef.current || 'Anónimo')
+      await fetch('/api/skins', { method: 'PUT', body: form })
+    } catch { /* silent */ }
+  }
+
+  function scheduleReUpload() {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    debounceTimer.current = setTimeout(reUploadToGallery, 2500)
   }
 
   function checkCompletion() {
@@ -251,9 +276,12 @@ export default function SkinEditor() {
     setFillCount(filled)
     const wasComplete = skinCompleteRef.current
     skinCompleteRef.current = filled === TOTAL_FRONT_PX
-    // Trigger auto-upload the moment the skin becomes complete
     if (!wasComplete && skinCompleteRef.current) {
       autoUploadToGallery()
+    } else if (wasComplete && skinCompleteRef.current && uploadedIdRef.current) {
+      scheduleReUpload()
+    } else if (!skinCompleteRef.current) {
+      if (debounceTimer.current) { clearTimeout(debounceTimer.current); debounceTimer.current = null }
     }
   }
 
@@ -359,6 +387,7 @@ export default function SkinEditor() {
   function loadFromFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
     autoUploadedRef.current = false
+    uploadedIdRef.current = null
     setAutoUploadDone(false)
     const img = new Image()
     img.onload = () => {
@@ -387,6 +416,7 @@ export default function SkinEditor() {
   function clearAll() {
     buf.current.fill(0)
     autoUploadedRef.current = false
+    uploadedIdRef.current = null
     setAutoUploadDone(false)
     syncOffscreen(); repaint(); pushHistory(); setSkinUrl(canvasToUrl())
   }
@@ -652,6 +682,21 @@ export default function SkinEditor() {
                 <CharacterPreview skinUrl={skinUrl} />
               </div>
               {/* Completion bar */}
+              {/* Name input */}
+              <div className="w-full flex flex-col gap-1.5">
+                <label className="text-xs font-extrabold tracking-wide uppercase opacity-60" style={{ color: 'var(--color-earth)' }}>
+                  Nombre para la galería
+                </label>
+                <input
+                  type="text" maxLength={32} value={skinName}
+                  onChange={e => { setSkinName(e.target.value); skinNameRef.current = e.target.value }}
+                  placeholder="Ej: Mi dragón épico..."
+                  className="w-full px-3 py-2 rounded-xl text-sm border-2 outline-none"
+                  style={{ borderColor: 'var(--color-brown-dirt)', background: 'var(--color-cream)', color: 'var(--color-earth)' }}
+                />
+              </div>
+
+              {/* Completion bar */}
               <div className="w-full flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold opacity-60" style={{ color: 'var(--color-earth)' }}>
@@ -672,6 +717,11 @@ export default function SkinEditor() {
                       background: autoUploadDone ? '#059669' : fillCount === TOTAL_FRONT_PX ? '#34d399' : 'var(--color-green-mine)',
                     }} />
                 </div>
+                {!autoUploadDone && fillCount < TOTAL_FRONT_PX && fillCount > 0 && (
+                  <p className="text-xs opacity-40" style={{ color: 'var(--color-earth)' }}>
+                    Rellena todos los píxeles para añadirla a la galería
+                  </p>
+                )}
               </div>
             </div>
           )}
