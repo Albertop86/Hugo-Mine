@@ -16,11 +16,19 @@ async function getFeaturedDates(): Promise<{ slug: string; date: string }[]> {
   } catch { return [] }
 }
 
+async function getDynamicBlogSlugs(): Promise<{ slug: string; date: string }[]> {
+  try {
+    const res = await fetch(`${BLOB_BASE}/blog/index.json`, { next: { revalidate: 3600 } })
+    if (!res.ok) return []
+    return res.json()
+  } catch { return [] }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now     = new Date()
   const entries: MetadataRoute.Sitemap = []
 
-  const featured    = await getFeaturedDates()
+  const [featured, dynamicBlog] = await Promise.all([getFeaturedDates(), getDynamicBlogSlugs()])
   const featuredMap = new Map(featured.map(e => [e.slug, e.date]))
   const allSlugs    = getAllCharacterSlugs()
 
@@ -36,10 +44,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       { url: `${BASE_URL}/${locale}/privacy`,      lastModified: now, changeFrequency: 'yearly',  priority: 0.2 },
       { url: `${BASE_URL}/${locale}/terms`,        lastModified: now, changeFrequency: 'yearly',  priority: 0.2 },
     )
+    const staticSlugs = new Set(BLOG_POSTS.map(p => p.slug))
     for (const post of BLOG_POSTS) {
       entries.push({
         url: `${BASE_URL}/${locale}/blog/${post.slug}`,
         lastModified: new Date(post.date),
+        changeFrequency: 'monthly',
+        priority: 0.8,
+      })
+    }
+    for (const post of dynamicBlog) {
+      if (staticSlugs.has(post.slug)) continue
+      const d = post.date ? new Date(post.date) : now
+      entries.push({
+        url: `${BASE_URL}/${locale}/blog/${post.slug}`,
+        lastModified: isNaN(d.getTime()) ? now : d,
         changeFrequency: 'monthly',
         priority: 0.8,
       })

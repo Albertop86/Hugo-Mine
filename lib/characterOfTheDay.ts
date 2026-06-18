@@ -89,6 +89,23 @@ export const CHARACTERS: Character[] = [
   { slug: 'creeper-humano',   nameEs: 'Creeper Humanizado', nameEn: 'Humanized Creeper', emoji: '💚', category: 'Minecraft', skinFile: 'creeper',      tags: ['minecraft','creeper','humanized'] },
   { slug: 'enderman-humano',  nameEs: 'Enderman Humanizado', nameEn: 'Humanized Enderman', emoji: '🖤', category: 'Minecraft', tags: ['minecraft','enderman','humanized'] },
   { slug: 'notch',            nameEs: 'Notch',            nameEn: 'Notch',            emoji: '⛏️', category: 'Minecraft', tags: ['minecraft','creator','history'] },
+  // === ANIME (nuevos) ===
+  { slug: 'denji',            nameEs: 'Denji (Chainsaw Man)', nameEn: 'Denji (Chainsaw Man)', emoji: '🪚', category: 'Anime', tags: ['anime','chainsawman','denji'] },
+  { slug: 'makima',           nameEs: 'Makima',           nameEn: 'Makima',           emoji: '🔗', category: 'Anime',     tags: ['anime','chainsawman','villain'] },
+  { slug: 'power-csm',        nameEs: 'Power (Chainsaw Man)', nameEn: 'Power (Chainsaw Man)', emoji: '🩸', category: 'Anime', tags: ['anime','chainsawman','devil'] },
+  { slug: 'anya-forger',      nameEs: 'Anya Forger',      nameEn: 'Anya Forger',      emoji: '🥜', category: 'Anime',     tags: ['anime','spyxfamily','cute'] },
+  { slug: 'loid-forger',      nameEs: 'Loid Forger',      nameEn: 'Loid Forger',      emoji: '🕵️', category: 'Anime',     tags: ['anime','spyxfamily','spy'] },
+  { slug: 'sukuna',           nameEs: 'Ryomen Sukuna',    nameEn: 'Ryomen Sukuna',    emoji: '👹', category: 'Anime',     tags: ['anime','jjk','jujutsu','king'] },
+  { slug: 'nezuko',           nameEs: 'Nezuko',           nameEn: 'Nezuko',           emoji: '🌸', category: 'Anime',     tags: ['anime','demonslayer','kimetsu'] },
+  { slug: 'zenitsu',          nameEs: 'Zenitsu',          nameEn: 'Zenitsu',          emoji: '⚡', category: 'Anime',     tags: ['anime','demonslayer','thunder'] },
+  // === GAMING (nuevos) ===
+  { slug: 'v-cyberpunk',      nameEs: 'V (Cyberpunk 2077)', nameEn: 'V (Cyberpunk 2077)', emoji: '🤖', category: 'Gaming', tags: ['gaming','cyberpunk','cd-projekt'] },
+  { slug: 'the-tarnished',    nameEs: 'El Sin Gracia',    nameEn: 'The Tarnished',    emoji: '⚔️', category: 'Gaming',    tags: ['gaming','eldenring','fromsoftware'] },
+  { slug: 'aloy',             nameEs: 'Aloy',             nameEn: 'Aloy',             emoji: '🏹', category: 'Gaming',    tags: ['gaming','horizonzerodawn','sony'] },
+  { slug: '2b-nier',          nameEs: '2B (NieR)',        nameEn: '2B (NieR Automata)', emoji: '⚙️', category: 'Gaming', tags: ['gaming','nier','automata'] },
+  // === PELÍCULAS (nuevos) ===
+  { slug: 'gollum',           nameEs: 'Gollum',           nameEn: 'Gollum',           emoji: '💍', category: 'Películas', tags: ['lotr','tolkien','precious'] },
+  { slug: 'thanos-endgame',   nameEs: 'Thanos (Endgame)', nameEn: 'Thanos (Endgame)', emoji: '🟣', category: 'Películas', tags: ['marvel','avengers','infinity'] },
 ]
 
 // Devuelve el personaje del día basado en la fecha

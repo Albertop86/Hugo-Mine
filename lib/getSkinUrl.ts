@@ -17,11 +17,11 @@ export async function getSkinUrl(char: Character): Promise<string | null> {
 
   // Generate and store — pure Node.js, no browser APIs
   try {
-    const [{ makeCharacterSkin, getPalette }, { put }] = await Promise.all([
+    const [{ makeCharacterSkin, getPalette, getExtras }, { put }] = await Promise.all([
       import('./characterSkinGenerator'),
       import('@vercel/blob'),
     ])
-    const buf = makeCharacterSkin(getPalette(char.slug, char.category))
+    const buf = makeCharacterSkin(getPalette(char.slug, char.category), getExtras(char.slug))
     const { url } = await put(`skins/characters/${char.slug}.png`, buf, {
       access: 'public', contentType: 'image/png', addRandomSuffix: false, allowOverwrite: true,
     })

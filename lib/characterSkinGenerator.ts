@@ -1,8 +1,6 @@
 import { deflateSync } from 'zlib'
 
-// Pure Node.js Minecraft skin generator — no browser APIs, no external packages
-
-type C = [number, number, number, number] // RGBA
+type C = [number, number, number, number]
 
 // ── PNG encoder ──────────────────────────────────────────────────────────────
 
@@ -36,7 +34,7 @@ function toPNG(px: Uint8Array, w: number, h: number): Buffer {
   const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
   const ihdr = Buffer.alloc(13)
   ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4)
-  ihdr[8] = 8; ihdr[9] = 6 // 8-bit RGBA
+  ihdr[8] = 8; ihdr[9] = 6
   const stride = w * 4 + 1
   const raw = Buffer.alloc(stride * h)
   for (let y = 0; y < h; y++) {
@@ -50,11 +48,20 @@ function toPNG(px: Uint8Array, w: number, h: number): Buffer {
   return Buffer.concat([sig, chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))])
 }
 
-// ── Skin painter ─────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
 export type SkinPalette = { face: C; hair: C; body: C; legs: C }
 
-export function makeCharacterSkin(p: SkinPalette): Buffer {
+export type SkinExtras = {
+  whiskers?: boolean   // Naruto-style cheek marks
+  blindfold?: boolean  // White cloth band across eyes (Gojo)
+  darkMask?: boolean   // Dark hero mask covering upper face
+  chestDot?: C         // Small accent dot on chest (arc reactor, star, etc.)
+}
+
+// ── Skin painter ─────────────────────────────────────────────────────────────
+
+export function makeCharacterSkin(p: SkinPalette, extras: SkinExtras = {}): Buffer {
   const W = 64, H = 64
   const px = new Uint8Array(W * H * 4)
 
@@ -63,66 +70,133 @@ export function makeCharacterSkin(p: SkinPalette): Buffer {
     const i = (y * W + x) * 4
     px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3]
   }
-
   const fill = (x: number, y: number, w: number, h: number, c: C) => {
     for (let dy = 0; dy < h; dy++)
       for (let dx = 0; dx < w; dx++)
         set(x+dx, y+dy, c)
   }
-
   const dim = (c: C, f: number): C =>
     [Math.min(255, Math.round(c[0]*f)), Math.min(255, Math.round(c[1]*f)), Math.min(255, Math.round(c[2]*f)), c[3]]
 
   const { face, hair, body, legs } = p
-  const bodyS = dim(body, 0.78)
-  const legsS = dim(legs, 0.78)
-  const eyes: C  = [35, 25, 15, 255]
-  const white: C = [225, 222, 215, 255]
+  const bodyS  = dim(body, 0.78)
+  const legsS  = dim(legs, 0.78)
+  const eyeW: C = [230, 228, 220, 255]
+  const eyeD: C = [30,  20,  10,  255]
+  const brow    = dim(hair, 0.62)
+  const noseS   = dim(face, 0.82)
+  const mouthC  = dim(face, 0.60)
+  const chinS   = dim(face, 0.90)
 
-  // HEAD (UV 0-31, 0-15)
-  fill(0,  8, 8, 8, dim(hair, 0.82)) // right side
-  fill(8,  0, 8, 8, hair)             // top
-  fill(8,  8, 8, 8, face)             // FRONT ← visible
-  fill(16, 8, 8, 8, dim(hair, 0.88)) // left side
-  fill(24, 8, 8, 8, dim(hair, 0.72)) // back
-  fill(16, 0, 8, 8, dim(face, 0.88)) // bottom
-  // Eyes: row 10, two 2x2 white squares then dark pupils
-  fill(9,  10, 2, 2, white); fill(13, 10, 2, 2, white)
-  set(10, 10, eyes); set(10, 11, eyes)
-  set(14, 10, eyes); set(14, 11, eyes)
+  // ── HEAD: sides / top / back ─────────────────────────────────────────────
+  // Right side (UV 0,8 — 8×8): hair with alternating stripe texture
+  for (let dy = 0; dy < 8; dy++)
+    fill(0, 8+dy, 8, 1, dim(hair, dy % 2 === 0 ? 0.82 : 0.77))
+  // Top (UV 8,0 — 8×8)
+  fill(8, 0, 4, 8, hair)
+  fill(12, 0, 4, 8, dim(hair, 0.93))
+  // Left side (UV 16,8 — 8×8)
+  for (let dy = 0; dy < 8; dy++)
+    fill(16, 8+dy, 8, 1, dim(hair, dy % 2 === 0 ? 0.88 : 0.83))
+  // Back (UV 24,8 — 8×8)
+  fill(24, 8, 8, 8, dim(hair, 0.70))
+  // Bottom (UV 16,0 — 8×8)
+  fill(16, 0, 8, 8, dim(face, 0.88))
 
-  // BODY
-  fill(20, 16,  8,  4, body);  fill(28, 16,  8,  4, bodyS)
-  fill(16, 20,  4, 12, bodyS); fill(20, 20,  8, 12, body)
-  fill(28, 20,  4, 12, bodyS); fill(32, 20,  8, 12, bodyS)
+  // ── FACE FRONT (UV 8,8 — 8×8) ───────────────────────────────────────────
+  fill(8, 8, 8, 8, face)           // base skin color
+  fill(8, 8, 8, 1, hair)           // y=8: hairline
+  fill(9, 9, 3, 1, brow)           // y=9: left eyebrow
+  fill(13, 9, 3, 1, brow)          // y=9: right eyebrow
+  fill(9,  10, 2, 2, eyeW)         // y=10–11: left eye white
+  fill(13, 10, 2, 2, eyeW)         // y=10–11: right eye white
+  set(10, 10, eyeD); set(10, 11, eyeD)  // left pupil
+  set(14, 10, eyeD); set(14, 11, eyeD)  // right pupil
+  set(12, 12, noseS)               // y=12: nose shadow
+  fill(10, 14, 4, 1, mouthC)       // y=14: mouth
+  fill(8, 15, 8, 1, chinS)         // y=15: chin shadow
 
-  // RIGHT LEG
-  fill(0,  16, 4, 4, legs);  fill(4, 16, 4, 4, legsS)
-  fill(0,  20, 4, 12, legsS); fill(4, 20, 4, 12, legs) // front ← visible
-  fill(8,  20, 4, 12, legsS); fill(12, 20, 4, 12, legsS)
+  // Face extras (applied after base face, overriding as needed)
+  if (extras.whiskers) {
+    const wC = dim(face, 0.52)
+    set(8, 11, wC); set(8, 12, wC); set(8, 13, wC)    // left cheek marks
+    set(15, 11, wC); set(15, 12, wC); set(15, 13, wC)  // right cheek marks
+  }
+  if (extras.blindfold) {
+    const band: C = [245, 245, 242, 255]
+    fill(8, 9,  8, 1, dim(band, 0.72))
+    fill(8, 10, 8, 2, band)
+    fill(8, 12, 8, 1, dim(band, 0.72))
+  }
+  if (extras.darkMask) {
+    const maskC = dim(hair, 0.85)
+    fill(8, 8, 8, 5, maskC)              // forehead + eye zone = mask
+    fill(9,  10, 2, 2, eyeW)             // white eye openings
+    fill(13, 10, 2, 2, eyeW)
+    set(10, 10, dim(maskC, 0.5)); set(10, 11, dim(maskC, 0.5))  // subtle pupils in white
+    set(14, 10, dim(maskC, 0.5)); set(14, 11, dim(maskC, 0.5))
+  }
 
-  // LEFT LEG (new format, bottom half)
-  fill(16, 48, 4, 4, legs);  fill(20, 48, 4, 4, legsS)
-  fill(16, 52, 4, 12, legsS); fill(20, 52, 4, 12, legs) // front ← visible
-  fill(24, 52, 4, 12, legsS); fill(28, 52, 4, 12, legsS)
+  // ── BODY ─────────────────────────────────────────────────────────────────
+  fill(20, 16, 8, 4, body);   fill(28, 16, 8, 4, bodyS)   // top / bottom
+  fill(16, 20, 4, 12, bodyS); fill(20, 20, 8, 12, body)   // right / front
+  fill(28, 20, 4, 12, bodyS); fill(32, 20, 8, 12, bodyS)  // left / back
+  fill(20, 30, 8, 2, dim(body, 0.58))                      // belt stripe
+  if (extras.chestDot) fill(23, 21, 2, 2, extras.chestDot)
 
-  // RIGHT ARM
-  fill(40, 16, 4, 4, body);  fill(44, 16, 4, 4, bodyS)
-  fill(40, 20, 4, 12, bodyS); fill(44, 20, 4, 12, body) // front ← visible
+  // ── ARMS ─────────────────────────────────────────────────────────────────
+  fill(40, 16, 4, 4, body);   fill(44, 16, 4, 4, bodyS)
+  fill(40, 20, 4, 12, bodyS); fill(44, 20, 4, 12, body)
   fill(48, 20, 4, 12, bodyS); fill(52, 20, 4, 12, bodyS)
 
-  // LEFT ARM (new format)
-  fill(32, 48, 4, 4, body);  fill(36, 48, 4, 4, bodyS)
-  fill(32, 52, 4, 12, bodyS); fill(36, 52, 4, 12, body) // front ← visible
+  fill(32, 48, 4, 4, body);   fill(36, 48, 4, 4, bodyS)
+  fill(32, 52, 4, 12, bodyS); fill(36, 52, 4, 12, body)
   fill(40, 52, 4, 12, bodyS); fill(44, 52, 4, 12, bodyS)
+
+  // ── LEGS ─────────────────────────────────────────────────────────────────
+  fill(0,  16, 4, 4, legs);   fill(4,  16, 4, 4, legsS)
+  fill(0,  20, 4, 12, legsS); fill(4,  20, 4, 12, legs)
+  fill(8,  20, 4, 12, legsS); fill(12, 20, 4, 12, legsS)
+
+  fill(16, 48, 4, 4, legs);   fill(20, 48, 4, 4, legsS)
+  fill(16, 52, 4, 12, legsS); fill(20, 52, 4, 12, legs)
+  fill(24, 52, 4, 12, legsS); fill(28, 52, 4, 12, legsS)
+
+  // ── OVERLAY: jacket + pants (second skin layer — renders outside base) ────
+  // This gives a 3D jacket-over-shirt look in Minecraft
+  const jkt  = dim(body, 0.87)
+  const jktS = dim(body, 0.67)
+  const pnt  = dim(legs, 0.87)
+  const pntS = dim(legs, 0.67)
+
+  // Body jacket (UV y=32–47)
+  fill(20, 32, 8, 4, jkt);    fill(28, 32, 8, 4, jktS)
+  fill(16, 36, 4, 12, jktS);  fill(20, 36, 8, 12, jkt)
+  fill(28, 36, 4, 12, jktS);  fill(32, 36, 8, 12, jktS)
+  // Right sleeve overlay
+  fill(44, 32, 4, 4, jkt);    fill(48, 32, 4, 4, jktS)
+  fill(40, 36, 4, 12, jktS);  fill(44, 36, 4, 12, jkt)
+  fill(48, 36, 4, 12, jktS);  fill(52, 36, 4, 12, jktS)
+  // Left sleeve overlay
+  fill(52, 48, 4, 4, jkt);    fill(56, 48, 4, 4, jktS)
+  fill(48, 52, 4, 12, jktS);  fill(52, 52, 4, 12, jkt)
+  fill(56, 52, 4, 12, jktS);  fill(60, 52, 4, 12, jktS)
+  // Right pant overlay
+  fill(4,  32, 4, 4, pnt);    fill(8,  32, 4, 4, pntS)
+  fill(0,  36, 4, 12, pntS);  fill(4,  36, 4, 12, pnt)
+  fill(8,  36, 4, 12, pntS);  fill(12, 36, 4, 12, pntS)
+  // Left pant overlay
+  fill(4,  48, 4, 4, pnt);    fill(8,  48, 4, 4, pntS)
+  fill(0,  52, 4, 12, pntS);  fill(4,  52, 4, 12, pnt)
+  fill(8,  52, 4, 12, pntS);  fill(12, 52, 4, 12, pntS)
 
   return toPNG(px, W, H)
 }
 
 // ── Character colour palettes ─────────────────────────────────────────────────
 
-const L: C = [255, 213, 170, 255] // light skin
-const M: C = [220, 175, 130, 255] // medium skin
+const L: C = [255, 213, 170, 255]
+const M: C = [220, 175, 130, 255]
 
 const BY_CATEGORY: Record<string, SkinPalette> = {
   Marvel:    { face: L, hair: [30,30,30,255],    body: [180,0,0,255],     legs: [20,20,160,255] },
@@ -204,8 +278,46 @@ const BY_SLUG: Record<string, SkinPalette> = {
   'enderman-humano':  { face: [20,0,20,255],    hair: [10,0,10,255],     body: [30,0,30,255],      legs: [20,0,20,255] },
   'notch':            { face: L, hair: [50,30,10,255],      body: [150,120,80,255],   legs: [80,60,30,255] },
   'steve-games':      { face: L, hair: [80,60,40,255],      body: [60,80,140,255],    legs: [40,50,100,255] },
+  // Chainsaw Man
+  'denji':            { face: L, hair: [220,180,60,255],    body: [30,30,30,255],     legs: [20,20,20,255] },
+  'makima':           { face: L, hair: [160,80,80,255],     body: [20,30,60,255],     legs: [15,20,50,255] },
+  'power-csm':        { face: L, hair: [200,50,50,255],     body: [20,20,20,255],     legs: [15,15,15,255] },
+  // Spy x Family
+  'anya-forger':      { face: L, hair: [180,100,180,255],   body: [210,180,160,255],  legs: [80,60,40,255] },
+  'loid-forger':      { face: L, hair: [200,200,180,255],   body: [30,50,30,255],     legs: [20,30,20,255] },
+  // JJK
+  'sukuna':           { face: [230,180,160,255], hair: [180,30,30,255],   body: [100,20,20,255],    legs: [60,10,10,255] },
+  // Demon Slayer
+  'nezuko':           { face: L, hair: [20,20,20,255],      body: [220,120,180,255],  legs: [20,20,20,255] },
+  'zenitsu':          { face: L, hair: [220,200,60,255],    body: [220,180,0,255],    legs: [20,20,20,255] },
+  // Gaming
+  'v-cyberpunk':      { face: L, hair: [20,20,20,255],      body: [40,40,60,255],     legs: [30,30,50,255] },
+  'the-tarnished':    { face: L, hair: [60,40,20,255],      body: [100,90,70,255],    legs: [70,60,50,255] },
+  'aloy':             { face: L, hair: [180,100,40,255],    body: [80,100,60,255],    legs: [60,70,40,255] },
+  '2b-nier':          { face: L, hair: [230,230,230,255],   body: [20,20,20,255],     legs: [15,15,15,255] },
+  // Películas
+  'gollum':           { face: [180,170,140,255], hair: [100,90,70,255],   body: [140,130,100,255],  legs: [100,90,70,255] },
+  'thanos-endgame':   { face: [120,80,120,255],  hair: [80,50,80,255],    body: [80,60,100,255],    legs: [60,40,80,255] },
+}
+
+// Per-character extras (face details, chest marks, masks)
+const EXTRAS_BY_SLUG: Record<string, SkinExtras> = {
+  'naruto':          { whiskers: true },
+  'gojo':            { blindfold: true },
+  'batman':          { darkMask: true },
+  'deadpool':        { darkMask: true },
+  'iron-man':        { chestDot: [100, 200, 255, 255] },
+  'captain-america': { chestDot: [200, 30,  30,  255] },
+  'doctor-strange':  { chestDot: [220, 180, 20,  255] },
+  'flash':           { chestDot: [255, 220, 0,   255] },
+  'superman':        { chestDot: [255, 220, 0,   255] },
+  'herobrine':       { blindfold: true },
 }
 
 export function getPalette(slug: string, category: string): SkinPalette {
   return BY_SLUG[slug] ?? BY_CATEGORY[category] ?? BY_CATEGORY['Series']
+}
+
+export function getExtras(slug: string): SkinExtras {
+  return EXTRAS_BY_SLUG[slug] ?? {}
 }

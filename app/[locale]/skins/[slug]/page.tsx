@@ -25,17 +25,23 @@ type CharacterDayData = {
 }
 
 async function getCharacterData(slug: string): Promise<CharacterDayData | null> {
-  // Search the index for when this character was featured
   try {
     const idxRes = await fetch(`${BLOB_BASE}/characters/index.json`, { next: { revalidate: 3600 } })
-    if (!idxRes.ok) return null
-    const index: { date: string; slug: string }[] = await idxRes.json()
-    const entry = index.find(e => e.slug === slug)
-    if (!entry) return null
-    const res = await fetch(`${BLOB_BASE}/characters/${entry.date}.json`, { next: { revalidate: 86400 } })
-    if (!res.ok) return null
-    return res.json()
-  } catch { return null }
+    if (idxRes.ok) {
+      const index: { date: string; slug: string }[] = await idxRes.json()
+      const entry = index.find(e => e.slug === slug)
+      if (entry) {
+        const res = await fetch(`${BLOB_BASE}/characters/${entry.date}.json`, { next: { revalidate: 86400 } })
+        if (res.ok) return res.json()
+      }
+    }
+  } catch {}
+  // Fallback: standalone pre-generated content (not yet featured as skin del día)
+  try {
+    const res = await fetch(`${BLOB_BASE}/characters/standalone/${slug}.json`, { next: { revalidate: 86400 } })
+    if (res.ok) return res.json()
+  } catch {}
+  return null
 }
 
 export async function generateStaticParams() {

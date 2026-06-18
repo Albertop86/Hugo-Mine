@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { put } from '@vercel/blob'
 import { getCharacterOfTheDay, type Character } from '@/lib/characterOfTheDay'
-import { makeCharacterSkin, getPalette } from '@/lib/characterSkinGenerator'
+import { makeCharacterSkin, getPalette, getExtras } from '@/lib/characterSkinGenerator'
 
 const LOCALES = ['es', 'en', 'fr', 'pt'] as const
 const LOCALE_INST: Record<string, string> = {
@@ -66,7 +66,7 @@ async function generateAndStoreSkin(character: Character): Promise<string> {
     return `/skins/premade/${character.skinFile}.png`
   }
   const palette    = getPalette(character.slug, character.category)
-  const pngBuffer  = makeCharacterSkin(palette)
+  const pngBuffer  = makeCharacterSkin(palette, getExtras(character.slug))
   const blobResult = await put(`skins/characters/${character.slug}.png`, pngBuffer, {
     access: 'public', contentType: 'image/png', addRandomSuffix: false, allowOverwrite: true,
   })
