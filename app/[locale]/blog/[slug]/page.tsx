@@ -6,6 +6,23 @@ import { BLOG_POSTS, type Locale } from '@/lib/blogPosts'
 import { getPost, listSlugs, type BlogPost } from '@/lib/blogStore'
 import AmazonBox from '@/components/AmazonBox'
 import { routing } from '@/lib/i18n/routing'
+import { CHARACTERS } from '@/lib/characterOfTheDay'
+
+const POPULAR_SLUGS = ['spider-man', 'naruto', 'goku', 'batman', 'iron-man', 'sonic']
+
+function findRelatedChars(slug: string, title: string, limit = 4) {
+  const text = (slug + ' ' + title).toLowerCase()
+  const matches = CHARACTERS.filter(c =>
+    c.nameEn.toLowerCase().split(' ').some(w => w.length > 3 && text.includes(w)) ||
+    c.nameEs.toLowerCase().split(' ').some(w => w.length > 3 && text.includes(w)) ||
+    c.tags.some(t => text.includes(t))
+  )
+  if (matches.length >= limit) return matches.slice(0, limit)
+  const popular = POPULAR_SLUGS
+    .map(s => CHARACTERS.find(c => c.slug === s))
+    .filter((c): c is typeof CHARACTERS[0] => !!c && !matches.find(m => m.slug === c.slug))
+  return [...matches, ...popular].slice(0, limit)
+}
 
 export const revalidate = 3600
 
@@ -109,6 +126,14 @@ export default async function BlogPostPage({ params }: Props) {
   // Posts relacionados (estáticos + dinámicos)
   const staticRelated = BLOG_POSTS.filter(p => p.slug !== slug).slice(0, 3)
 
+  const relatedChars = findRelatedChars(slug, post.title)
+  const relatedCharsLabel: Record<Locale, string> = {
+    es: 'Skins de personajes relacionados',
+    en: 'Related character skins',
+    fr: 'Skins de personnages associés',
+    pt: 'Skins de personagens relacionados',
+  }
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -173,7 +198,31 @@ export default async function BlogPostPage({ params }: Props) {
         {/* Amazon affiliate */}
         <AmazonBox locale={locale} />
 
-        {/* Related */}
+        {/* Related character skins */}
+        {relatedChars.length > 0 && (
+          <div className="mt-10 pt-8" style={{ borderTop: '2px solid var(--color-cream-dark)' }}>
+            <p className="text-sm font-bold mb-3 opacity-60" style={{ color: 'var(--color-earth)' }}>
+              🎮 {relatedCharsLabel[locale]}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {relatedChars.map(c => (
+                <Link key={c.slug} href={`/${locale}/skins/${c.slug}`}
+                  className="rounded-xl p-3 text-center hover:shadow-md hover:-translate-y-0.5 transition-all"
+                  style={{ background: 'var(--color-cream)', border: '2px solid var(--color-cream-dark)', textDecoration: 'none' }}>
+                  <div className="text-3xl mb-1">{c.emoji}</div>
+                  <div className="text-xs font-semibold truncate" style={{ color: 'var(--color-earth)' }}>
+                    {locale === 'es' ? c.nameEs : c.nameEn}
+                  </div>
+                  <div className="text-xs mt-1 opacity-50" style={{ color: 'var(--color-earth)' }}>
+                    {locale === 'es' ? 'Ver skin →' : locale === 'fr' ? 'Voir skin →' : locale === 'pt' ? 'Ver skin →' : 'View skin →'}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Related articles */}
         <div className="mt-10 pt-8" style={{ borderTop: '2px solid var(--color-cream-dark)' }}>
           <p className="text-sm font-bold mb-3 opacity-60" style={{ color: 'var(--color-earth)' }}>
             {RELATED[locale]}

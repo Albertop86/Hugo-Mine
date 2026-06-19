@@ -130,9 +130,49 @@ export default async function SkinCharacterPage({ params }: Props) {
   const skinUrl = data?.skinUrl ?? await getSkinUrl(char)
 
   // Similar characters (same category)
-  const similar = CHARACTERS.filter(c => c.category === char.category && c.slug !== char.slug).slice(0, 4)
+  const similar = CHARACTERS.filter(c => c.category === char.category && c.slug !== char.slug).slice(0, 6)
 
-  const jsonLd = {
+  const faqItems = [
+    {
+      q: locale === 'es' ? `¿Cómo descargar la skin de ${name} para Minecraft?`
+       : locale === 'fr' ? `Comment télécharger le skin ${name} pour Minecraft ?`
+       : locale === 'pt' ? `Como baixar a skin do ${name} para Minecraft?`
+       : `How to download the ${name} Minecraft skin?`,
+      a: locale === 'es' ? `Entra en makeskins.com/es/skins/${slug}, haz clic en "Descargar skin gratis" y el archivo .png se descarga automáticamente. Compatible con Java y Bedrock.`
+       : locale === 'fr' ? `Rendez-vous sur makeskins.com/fr/skins/${slug}, cliquez sur "Télécharger skin gratuit" et le fichier .png se télécharge automatiquement. Compatible Java et Bedrock.`
+       : locale === 'pt' ? `Acesse makeskins.com/pt/skins/${slug}, clique em "Baixar skin grátis" e o arquivo .png é baixado automaticamente. Compatível com Java e Bedrock.`
+       : `Visit makeskins.com/en/skins/${slug}, click "Download free skin" and the .png file downloads automatically. Compatible with Java and Bedrock.`,
+    },
+    {
+      q: locale === 'es' ? `¿La skin de ${name} es gratis?`
+       : locale === 'fr' ? `Le skin ${name} est-il gratuit ?`
+       : locale === 'pt' ? `A skin do ${name} é gratuita?`
+       : `Is the ${name} Minecraft skin free?`,
+      a: locale === 'es' ? `Sí, todas las skins de makeskins.com son completamente gratuitas y no requieren registro.`
+       : locale === 'fr' ? `Oui, tous les skins de makeskins.com sont entièrement gratuits et ne nécessitent pas d'inscription.`
+       : locale === 'pt' ? `Sim, todas as skins do makeskins.com são completamente gratuitas e não requerem registro.`
+       : `Yes, all skins on makeskins.com are completely free and require no registration.`,
+    },
+    {
+      q: locale === 'es' ? `¿Funciona la skin de ${name} en Minecraft Java y Bedrock?`
+       : locale === 'fr' ? `Le skin ${name} fonctionne-t-il sur Java et Bedrock ?`
+       : locale === 'pt' ? `A skin do ${name} funciona no Java e Bedrock?`
+       : `Does the ${name} skin work on Minecraft Java and Bedrock?`,
+      a: locale === 'es' ? `Sí, el archivo .png descargado es compatible con Minecraft Java Edition y Bedrock Edition en todas las plataformas.`
+       : locale === 'fr' ? `Oui, le fichier .png téléchargé est compatible avec Minecraft Java Edition et Bedrock Edition sur toutes les plateformes.`
+       : locale === 'pt' ? `Sim, o arquivo .png é compatível com Minecraft Java Edition e Bedrock Edition em todas as plataformas.`
+       : `Yes, the downloaded .png file is compatible with both Minecraft Java Edition and Bedrock Edition on all platforms.`,
+    },
+    ...(content?.howToUse ? [{
+      q: locale === 'es' ? `¿Cómo poner la skin de ${name} en Minecraft?`
+       : locale === 'fr' ? `Comment mettre le skin ${name} dans Minecraft ?`
+       : locale === 'pt' ? `Como colocar a skin do ${name} no Minecraft?`
+       : `How to apply the ${name} skin in Minecraft?`,
+      a: content.howToUse,
+    }] : []),
+  ]
+
+  const webPageLd = {
     '@context':  'https://schema.org',
     '@type':     'WebPage',
     name:        content?.metaTitle ?? `${name} Minecraft Skin`,
@@ -140,9 +180,20 @@ export default async function SkinCharacterPage({ params }: Props) {
     url:         `https://makeskins.com/${locale}/skins/${slug}`,
   }
 
+  const faqLd = {
+    '@context':  'https://schema.org',
+    '@type':     'FAQPage',
+    mainEntity:  faqItems.map(item => ({
+      '@type':          'Question',
+      name:             item.q,
+      acceptedAnswer:   { '@type': 'Answer', text: item.a },
+    })),
+  }
+
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
 
       <div className="max-w-2xl mx-auto px-4 py-12">
         <Link href={`/${locale}/skins`}
@@ -258,7 +309,7 @@ export default async function SkinCharacterPage({ params }: Props) {
             <p className="text-sm font-bold mb-4 opacity-60" style={{ color: 'var(--color-earth)' }}>
               {L('similar')} — {char.category}
             </p>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
               {similar.map(s => (
                 <Link key={s.slug} href={`/${locale}/skins/${s.slug}`} style={{ textDecoration: 'none' }}>
                   <div className="rounded-xl p-3 text-center hover:shadow-md hover:-translate-y-0.5 transition-all"
