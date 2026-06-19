@@ -52,3 +52,6 @@ next-env.d.ts
 /public/comparisons.html
 
 .vercel
+
+.env*
+.vercel
