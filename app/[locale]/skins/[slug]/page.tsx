@@ -82,7 +82,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description: desc,
-      type: 'website',
+      type:   'website',
+      images: [`https://makeskins.com/${locale}/skins/${slug}/opengraph-image`],
+    },
+    twitter: {
+      card:        'summary_large_image',
+      title,
+      description: desc,
+      images:      [`https://makeskins.com/${locale}/skins/${slug}/opengraph-image`],
     },
     alternates: {
       canonical: `/${locale}/skins/${slug}`,
@@ -178,6 +185,7 @@ export default async function SkinCharacterPage({ params }: Props) {
     name:        content?.metaTitle ?? `${name} Minecraft Skin`,
     description: content?.metaDesc,
     url:         `https://makeskins.com/${locale}/skins/${slug}`,
+    image:       `https://makeskins.com/${locale}/skins/${slug}/opengraph-image`,
   }
 
   const faqLd = {
