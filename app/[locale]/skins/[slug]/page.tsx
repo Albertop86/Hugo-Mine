@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getCharacterBySlug, getAllCharacterSlugs, CHARACTERS } from '@/lib/characterOfTheDay'
 import { getSkinUrl } from '@/lib/getSkinUrl'
+import { CHARACTER_FUN_FACTS } from '@/lib/characterFunFacts'
 import { routing } from '@/lib/i18n/routing'
 import SkinDisplay from '@/components/SkinDisplay'
 import AmazonBox from '@/components/AmazonBox'
@@ -132,6 +133,10 @@ export default async function SkinCharacterPage({ params }: Props) {
   const data = await getCharacterData(slug)
   const content = (data?.[locale as keyof CharacterDayData] ?? data?.es) as CharacterDayContent | undefined
   const catColor = CATEGORY_COLORS[char.category] ?? 'var(--color-green-mine)'
+
+  const staticFact = CHARACTER_FUN_FACTS[char.slug]?.[locale as 'es'|'en'|'fr'|'pt']
+    ?? CHARACTER_FUN_FACTS[char.slug]?.en
+  const funFact = content?.funFact ?? staticFact
 
   // Resolve skin URL — generate if not yet in Blob
   const skinUrl = data?.skinUrl ?? await getSkinUrl(char)
@@ -290,10 +295,10 @@ export default async function SkinCharacterPage({ params }: Props) {
         )}
 
         {/* Fun fact */}
-        {content?.funFact && (
+        {funFact && (
           <div className="rounded-2xl p-4 mb-8" style={{ background: '#fef9c3', border: '2px solid #fde68a' }}>
             <p className="text-sm" style={{ color: '#92400e' }}>
-              <strong>{L('funFact')}</strong> {content.funFact}
+              <strong>{L('funFact')}</strong> {funFact}
             </p>
           </div>
         )}

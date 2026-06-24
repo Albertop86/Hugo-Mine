@@ -57,6 +57,10 @@ export type SkinExtras = {
   blindfold?: boolean  // White cloth band across eyes (Gojo)
   darkMask?: boolean   // Dark hero mask covering upper face
   chestDot?: C         // Small accent dot on chest (arc reactor, star, etc.)
+  venomFace?: boolean  // Black face with teeth/eyes
+  clownFace?: boolean  // Joker makeup
+  thorHelmet?: boolean // Thor helmet elements
+  wolverineMask?: boolean // Wolverine mask
 }
 
 // ── Skin painter ─────────────────────────────────────────────────────────────
@@ -137,6 +141,48 @@ export function makeCharacterSkin(p: SkinPalette, extras: SkinExtras = {}): Buff
     set(14, 10, dim(maskC, 0.5)); set(14, 11, dim(maskC, 0.5))
   }
 
+  if (extras.thorHelmet) {
+    const silver: C = [190, 195, 205, 255]
+    const gold:   C = [215, 180, 35,  255]
+    // Silver helmet plate over forehead and sides of face
+    fill(8, 8, 8, 2, silver)                            // helmet visor top (y=8,9)
+    fill(8, 8, 1, 6, silver)                            // left edge plate
+    fill(15, 8, 1, 6, silver)                           // right edge plate
+    // Redraw eyes visible through helmet opening
+    fill(9,  10, 2, 2, eyeW)
+    fill(13, 10, 2, 2, eyeW)
+    set(10, 10, eyeD); set(10, 11, eyeD)
+    set(14, 10, eyeD); set(14, 11, eyeD)
+    set(12, 12, noseS)
+    fill(10, 14, 4, 1, mouthC)
+    // Golden wings on head side UVs
+    fill(0,  9, 4, 3, gold)                             // right side wing (outer face)
+    fill(20, 9, 4, 3, gold)                             // left side wing
+  }
+
+  if (extras.wolverineMask) {
+    const yellow: C = [225, 185, 0,   255]
+    const black:  C = [12,  12,  12,  255]
+    // Yellow cowl covers forehead and upper face
+    fill(8, 8, 8, 4, yellow)
+    // Eye holes cut into the mask
+    fill(9,  10, 2, 2, eyeW)
+    fill(13, 10, 2, 2, eyeW)
+    set(10, 10, eyeD); set(10, 11, eyeD)
+    set(14, 10, eyeD); set(14, 11, eyeD)
+    // Black mask frame around eyes
+    fill(8,  10, 1, 2, black)
+    fill(11, 10, 2, 2, black)
+    fill(15, 10, 1, 2, black)
+    // Yellow cowl extends to head sides
+    fill(0,  8, 8, 4, yellow)
+    fill(16, 8, 8, 4, yellow)
+    // Ear/cowl peaks on head top (at UV 8,0)
+    fill(8,  4, 2, 4, yellow)                           // left ear spike
+    fill(14, 4, 2, 4, yellow)                           // right ear spike
+    set(9,  3, yellow); set(14, 3, yellow)              // spike tips
+  }
+
   // ── BODY ─────────────────────────────────────────────────────────────────
   fill(20, 16, 8, 4, body);   fill(28, 16, 8, 4, bodyS)   // top / bottom
   fill(16, 20, 4, 12, bodyS); fill(20, 20, 8, 12, body)   // right / front
@@ -193,6 +239,198 @@ export function makeCharacterSkin(p: SkinPalette, extras: SkinExtras = {}): Buff
   return toPNG(px, W, H)
 }
 
+// ── Specialized face painters ─────────────────────────────────────────────────
+
+/** Venom: simbionte negro completo con ojos blancos, boca de dientes y símbolo araña */
+export function makeVenomSkin(_p: SkinPalette): Buffer {
+  const W = 64, H = 64
+  const px = new Uint8Array(W * H * 4)
+
+  const set = (x: number, y: number, c: C) => {
+    if (x < 0 || x >= W || y < 0 || y >= H) return
+    const i = (y * W + x) * 4
+    px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3]
+  }
+  const fill = (x: number, y: number, w: number, h: number, c: C) => {
+    for (let dy = 0; dy < h; dy++)
+      for (let dx = 0; dx < w; dx++)
+        set(x+dx, y+dy, c)
+  }
+
+  const black:  C = [5,   5,   5,   255]
+  const blackD: C = [14,  14,  14,  255]
+  const white:  C = [240, 240, 240, 255]
+  const whiteD: C = [200, 200, 200, 255]
+  const tooth:  C = [250, 250, 248, 255]
+  const gum:    C = [180, 30,  50,  255]
+
+  // ── HEAD ────────────────────────────────────────────────────────────────────
+  for (let dy = 0; dy < 8; dy++) fill(0,  8+dy, 8, 1, black)
+  fill(8, 0, 8, 8, black)
+  for (let dy = 0; dy < 8; dy++) fill(16, 8+dy, 8, 1, black)
+  fill(24, 8, 8, 8, black)
+  fill(16, 0, 8, 8, black)
+  fill(8, 8, 8, 8, black)
+
+  // Venom eyes: large white ovals
+  fill(8,  9, 3, 3, white)
+  fill(13, 9, 3, 3, white)
+  set(9, 10, whiteD); set(10, 10, whiteD)
+  set(14, 10, whiteD); set(15, 10, whiteD)
+
+  // Wide grin with teeth
+  fill(8,  13, 8, 1, gum)
+  fill(8,  14, 8, 2, gum)
+  set(9,  13, tooth); set(9,  14, tooth)
+  set(11, 13, tooth); set(11, 14, tooth)
+  set(13, 13, tooth); set(13, 14, tooth)
+  set(15, 13, tooth); set(15, 14, tooth)
+  fill(11, 15, 2, 1, [180, 20, 40, 255])
+
+  // ── BODY ────────────────────────────────────────────────────────────────────
+  fill(20, 16, 8, 4, black);   fill(28, 16, 8, 4, black)
+  fill(16, 20, 4, 12, black);  fill(20, 20, 8, 12, black)
+  fill(28, 20, 4, 12, black);  fill(32, 20, 8, 12, black)
+  // Spider symbol on chest — white, front body UV (20,20)+(8×12)
+  set(23, 21, white); set(24, 21, white)                                       // head
+  fill(22, 22, 4, 1, white)                                                     // thorax
+  set(20, 22, white); set(27, 22, white)                                        // legs 1
+  set(21, 23, white); set(23, 23, white); set(24, 23, white); set(26, 23, white) // legs 2
+  set(22, 24, white); set(25, 24, white)                                        // abdomen legs 3
+  set(21, 25, white); set(26, 25, white)                                        // legs 4
+
+  // ── ARMS ────────────────────────────────────────────────────────────────────
+  fill(40, 16, 4, 4, black);  fill(44, 16, 4, 4, black)
+  fill(40, 20, 4, 12, black); fill(44, 20, 4, 12, black)
+  fill(48, 20, 4, 12, black); fill(52, 20, 4, 12, black)
+
+  fill(32, 48, 4, 4, black);  fill(36, 48, 4, 4, black)
+  fill(32, 52, 4, 12, black); fill(36, 52, 4, 12, black)
+  fill(40, 52, 4, 12, black); fill(44, 52, 4, 12, black)
+
+  // ── LEGS ────────────────────────────────────────────────────────────────────
+  fill(0,  16, 4, 4, black);  fill(4,  16, 4, 4, black)
+  fill(0,  20, 4, 12, black); fill(4,  20, 4, 12, black)
+  fill(8,  20, 4, 12, black); fill(12, 20, 4, 12, black)
+
+  fill(16, 48, 4, 4, black);  fill(20, 48, 4, 4, black)
+  fill(16, 52, 4, 12, black); fill(20, 52, 4, 12, black)
+  fill(24, 52, 4, 12, black); fill(28, 52, 4, 12, black)
+
+  // ── OVERLAY (slightly darker for 3D depth) ───────────────────────────────────
+  fill(20, 32, 8, 4, blackD);  fill(28, 32, 8, 4, blackD)
+  fill(16, 36, 4, 12, blackD); fill(20, 36, 8, 12, blackD)
+  fill(28, 36, 4, 12, blackD); fill(32, 36, 8, 12, blackD)
+  fill(44, 32, 4, 4, blackD);  fill(48, 32, 4, 4, blackD)
+  fill(40, 36, 4, 12, blackD); fill(44, 36, 4, 12, blackD)
+  fill(48, 36, 4, 12, blackD); fill(52, 36, 4, 12, blackD)
+  fill(52, 48, 4, 4, blackD);  fill(56, 48, 4, 4, blackD)
+  fill(48, 52, 4, 12, blackD); fill(52, 52, 4, 12, blackD)
+  fill(56, 52, 4, 12, blackD); fill(60, 52, 4, 12, blackD)
+  fill(4,  32, 4, 4, blackD);  fill(8,  32, 4, 4, blackD)
+  fill(0,  36, 4, 12, blackD); fill(4,  36, 4, 12, blackD)
+  fill(8,  36, 4, 12, blackD); fill(12, 36, 4, 12, blackD)
+  fill(4,  48, 4, 4, blackD);  fill(8,  48, 4, 4, blackD)
+  fill(0,  52, 4, 12, blackD); fill(4,  52, 4, 12, blackD)
+  fill(8,  52, 4, 12, blackD); fill(12, 52, 4, 12, blackD)
+
+  return toPNG(px, W, H)
+}
+
+/** Joker: cara con maquillaje de payaso + traje completo */
+export function makeJokerSkin(p: SkinPalette): Buffer {
+  const W = 64, H = 64
+  const px = new Uint8Array(W * H * 4)
+
+  const set = (x: number, y: number, c: C) => {
+    if (x < 0 || x >= W || y < 0 || y >= H) return
+    const i = (y * W + x) * 4
+    px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3]
+  }
+  const fill = (x: number, y: number, w: number, h: number, c: C) => {
+    for (let dy = 0; dy < h; dy++)
+      for (let dx = 0; dx < w; dx++)
+        set(x+dx, y+dy, c)
+  }
+  const dim = (c: C, f: number): C =>
+    [Math.min(255, Math.round(c[0]*f)), Math.min(255, Math.round(c[1]*f)), Math.min(255, Math.round(c[2]*f)), c[3]]
+
+  const { body, legs, hair } = p
+  const bodyS = dim(body, 0.78)
+  const legsS = dim(legs, 0.78)
+
+  const whiteBase: C = [240, 235, 225, 255]
+  const rouge:     C = [200, 30,  50,  255]
+  const lipRed:    C = [180, 0,   30,  255]
+  const eyeShadow: C = [50,  50,  80,  255]
+  const eyeD:      C = [20,  10,  40,  255]
+
+  // ── HEAD ────────────────────────────────────────────────────────────────────
+  for (let dy = 0; dy < 8; dy++) fill(0,  8+dy, 8, 1, dim(hair, dy % 2 === 0 ? 0.82 : 0.77))
+  fill(8, 0, 8, 8, hair)
+  for (let dy = 0; dy < 8; dy++) fill(16, 8+dy, 8, 1, dim(hair, dy % 2 === 0 ? 0.88 : 0.83))
+  fill(24, 8, 8, 8, dim(hair, 0.70))
+  fill(16, 0, 8, 8, dim(whiteBase, 0.88))
+
+  // Face front — clown white
+  fill(8, 8, 8, 8, whiteBase)
+  fill(8, 8, 8, 1, dim(hair, 0.9))                // hairline
+  fill(8, 9, 3, 3, eyeShadow)                      // left eye shadow
+  fill(13, 9, 3, 3, eyeShadow)                     // right eye shadow
+  set(9, 10, eyeD); set(10, 10, eyeD)              // pupils in shadow
+  set(14, 10, eyeD); set(15, 10, eyeD)
+  fill(8,  12, 2, 1, rouge)                        // cheek rouge left
+  fill(14, 12, 2, 1, rouge)                        // cheek rouge right
+  fill(9,  13, 6, 1, lipRed)                       // wide painted mouth
+  fill(10, 14, 4, 1, lipRed)
+  set(8,  13, rouge); set(15, 13, rouge)           // extended smile edges
+
+  // ── BODY ────────────────────────────────────────────────────────────────────
+  fill(20, 16, 8, 4, body);   fill(28, 16, 8, 4, bodyS)
+  fill(16, 20, 4, 12, bodyS); fill(20, 20, 8, 12, body)
+  fill(28, 20, 4, 12, bodyS); fill(32, 20, 8, 12, bodyS)
+  fill(20, 30, 8, 2, dim(body, 0.58))
+
+  // ── ARMS ────────────────────────────────────────────────────────────────────
+  fill(40, 16, 4, 4, body);   fill(44, 16, 4, 4, bodyS)
+  fill(40, 20, 4, 12, bodyS); fill(44, 20, 4, 12, body)
+  fill(48, 20, 4, 12, bodyS); fill(52, 20, 4, 12, bodyS)
+  fill(32, 48, 4, 4, body);   fill(36, 48, 4, 4, bodyS)
+  fill(32, 52, 4, 12, bodyS); fill(36, 52, 4, 12, body)
+  fill(40, 52, 4, 12, bodyS); fill(44, 52, 4, 12, bodyS)
+
+  // ── LEGS ────────────────────────────────────────────────────────────────────
+  fill(0,  16, 4, 4, legs);   fill(4,  16, 4, 4, legsS)
+  fill(0,  20, 4, 12, legsS); fill(4,  20, 4, 12, legs)
+  fill(8,  20, 4, 12, legsS); fill(12, 20, 4, 12, legsS)
+  fill(16, 48, 4, 4, legs);   fill(20, 48, 4, 4, legsS)
+  fill(16, 52, 4, 12, legsS); fill(20, 52, 4, 12, legs)
+  fill(24, 52, 4, 12, legsS); fill(28, 52, 4, 12, legsS)
+
+  // ── OVERLAY ──────────────────────────────────────────────────────────────────
+  const jkt  = dim(body, 0.87)
+  const jktS = dim(body, 0.67)
+  const pnt  = dim(legs, 0.87)
+  const pntS = dim(legs, 0.67)
+  fill(20, 32, 8, 4, jkt);   fill(28, 32, 8, 4, jktS)
+  fill(16, 36, 4, 12, jktS); fill(20, 36, 8, 12, jkt)
+  fill(28, 36, 4, 12, jktS); fill(32, 36, 8, 12, jktS)
+  fill(44, 32, 4, 4, jkt);   fill(48, 32, 4, 4, jktS)
+  fill(40, 36, 4, 12, jktS); fill(44, 36, 4, 12, jkt)
+  fill(48, 36, 4, 12, jktS); fill(52, 36, 4, 12, jktS)
+  fill(52, 48, 4, 4, jkt);   fill(56, 48, 4, 4, jktS)
+  fill(48, 52, 4, 12, jktS); fill(52, 52, 4, 12, jkt)
+  fill(56, 52, 4, 12, jktS); fill(60, 52, 4, 12, jktS)
+  fill(4,  32, 4, 4, pnt);   fill(8,  32, 4, 4, pntS)
+  fill(0,  36, 4, 12, pntS); fill(4,  36, 4, 12, pnt)
+  fill(8,  36, 4, 12, pntS); fill(12, 36, 4, 12, pntS)
+  fill(4,  48, 4, 4, pnt);   fill(8,  48, 4, 4, pntS)
+  fill(0,  52, 4, 12, pntS); fill(4,  52, 4, 12, pnt)
+  fill(8,  52, 4, 12, pntS); fill(12, 52, 4, 12, pntS)
+
+  return toPNG(px, W, H)
+}
+
 // ── Character colour palettes ─────────────────────────────────────────────────
 
 const L: C = [255, 213, 170, 255]
@@ -217,11 +455,12 @@ const BY_SLUG: Record<string, SkinPalette> = {
   'hulk':             { face: [50,180,50,255],  hair: [20,100,20,255],   body: [60,200,60,255],    legs: [30,0,60,255] },
   'thor':             { face: L, hair: [200,170,70,255],    body: [50,50,200,255],    legs: [80,80,80,255] },
   'black-widow':      { face: L, hair: [20,20,20,255],      body: [20,20,20,255],     legs: [15,15,15,255] },
+  'venom':            { face: [5,5,5,255],      hair: [5,5,5,255],       body: [5,5,5,255],        legs: [5,5,5,255] },
   'deadpool':         { face: [160,0,0,255],    hair: [140,0,0,255],     body: [180,0,0,255],      legs: [25,25,25,255] },
   'wolverine':        { face: L, hair: [60,30,10,255],      body: [220,180,0,255],    legs: [25,25,25,255] },
   'thanos':           { face: [120,80,120,255], hair: [80,50,80,255],    body: [100,60,100,255],   legs: [70,40,70,255] },
   'doctor-strange':   { face: L, hair: [30,30,30,255],      body: [80,0,0,255],       legs: [20,20,20,255] },
-  'black-panther':    { face: [40,20,20,255],   hair: [10,10,10,255],    body: [15,15,15,255],     legs: [10,10,10,255] },
+  'black-panther':    { face: [20,10,10,255],   hair: [10,10,10,255],    body: [15,15,15,255],     legs: [10,10,10,255] },
   'wanda':            { face: L, hair: [60,20,20,255],      body: [180,0,0,255],      legs: [100,0,0,255] },
   'loki':             { face: L, hair: [20,20,20,255],      body: [0,80,0,255],       legs: [0,0,0,255] },
   'batman':           { face: L, hair: [20,20,20,255],      body: [25,25,25,255],     legs: [20,20,20,255] },
@@ -278,24 +517,18 @@ const BY_SLUG: Record<string, SkinPalette> = {
   'enderman-humano':  { face: [20,0,20,255],    hair: [10,0,10,255],     body: [30,0,30,255],      legs: [20,0,20,255] },
   'notch':            { face: L, hair: [50,30,10,255],      body: [150,120,80,255],   legs: [80,60,30,255] },
   'steve-games':      { face: L, hair: [80,60,40,255],      body: [60,80,140,255],    legs: [40,50,100,255] },
-  // Chainsaw Man
   'denji':            { face: L, hair: [220,180,60,255],    body: [30,30,30,255],     legs: [20,20,20,255] },
   'makima':           { face: L, hair: [160,80,80,255],     body: [20,30,60,255],     legs: [15,20,50,255] },
   'power-csm':        { face: L, hair: [200,50,50,255],     body: [20,20,20,255],     legs: [15,15,15,255] },
-  // Spy x Family
   'anya-forger':      { face: L, hair: [180,100,180,255],   body: [210,180,160,255],  legs: [80,60,40,255] },
   'loid-forger':      { face: L, hair: [200,200,180,255],   body: [30,50,30,255],     legs: [20,30,20,255] },
-  // JJK
   'sukuna':           { face: [230,180,160,255], hair: [180,30,30,255],   body: [100,20,20,255],    legs: [60,10,10,255] },
-  // Demon Slayer
   'nezuko':           { face: L, hair: [20,20,20,255],      body: [220,120,180,255],  legs: [20,20,20,255] },
   'zenitsu':          { face: L, hair: [220,200,60,255],    body: [220,180,0,255],    legs: [20,20,20,255] },
-  // Gaming
   'v-cyberpunk':      { face: L, hair: [20,20,20,255],      body: [40,40,60,255],     legs: [30,30,50,255] },
   'the-tarnished':    { face: L, hair: [60,40,20,255],      body: [100,90,70,255],    legs: [70,60,50,255] },
   'aloy':             { face: L, hair: [180,100,40,255],    body: [80,100,60,255],    legs: [60,70,40,255] },
   '2b-nier':          { face: L, hair: [230,230,230,255],   body: [20,20,20,255],     legs: [15,15,15,255] },
-  // Películas
   'gollum':           { face: [180,170,140,255], hair: [100,90,70,255],   body: [140,130,100,255],  legs: [100,90,70,255] },
   'thanos-endgame':   { face: [120,80,120,255],  hair: [80,50,80,255],    body: [80,60,100,255],    legs: [60,40,80,255] },
 }
@@ -306,12 +539,29 @@ const EXTRAS_BY_SLUG: Record<string, SkinExtras> = {
   'gojo':            { blindfold: true },
   'batman':          { darkMask: true },
   'deadpool':        { darkMask: true },
+  'wolverine':       { wolverineMask: true },
   'iron-man':        { chestDot: [100, 200, 255, 255] },
   'captain-america': { chestDot: [200, 30,  30,  255] },
   'doctor-strange':  { chestDot: [220, 180, 20,  255] },
   'flash':           { chestDot: [255, 220, 0,   255] },
   'superman':        { chestDot: [255, 220, 0,   255] },
   'herobrine':       { blindfold: true },
+  'loki':            { chestDot: [180, 180, 0,   255] },
+  'thor':            { thorHelmet: true, chestDot: [200, 200, 50,  255] },
+  'wanda':           { chestDot: [220, 50,  50,  255] },
+  'black-panther':   { darkMask: true },
+}
+
+// Slugs that use specialized painters
+const SPECIALIZED: Record<string, (p: SkinPalette) => Buffer> = {
+  'venom': makeVenomSkin,
+  'joker': makeJokerSkin,
+}
+
+/** Single entry point: dispatches to specialized painter or generic generator */
+export function buildCharacterSkin(slug: string, category: string): Buffer {
+  const palette = getPalette(slug, category)
+  return SPECIALIZED[slug]?.(palette) ?? makeCharacterSkin(palette, getExtras(slug))
 }
 
 export function getPalette(slug: string, category: string): SkinPalette {
