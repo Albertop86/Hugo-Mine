@@ -57,6 +57,7 @@ export type SkinExtras = {
   blindfold?: boolean  // White cloth band across eyes (Gojo)
   darkMask?: boolean   // Dark hero mask covering upper face
   chestDot?: C         // Small accent dot on chest (arc reactor, star, etc.)
+  chestSymbol?: 'star' | 'lightning' | 'bat' | 'S' | 'arc' // Recognizable chest emblem
   venomFace?: boolean  // Black face with teeth/eyes
   clownFace?: boolean  // Joker makeup
   thorHelmet?: boolean // Thor helmet elements
@@ -189,6 +190,50 @@ export function makeCharacterSkin(p: SkinPalette, extras: SkinExtras = {}): Buff
   fill(28, 20, 4, 12, bodyS); fill(32, 20, 8, 12, bodyS)  // left / back
   fill(20, 30, 8, 2, dim(body, 0.58))                      // belt stripe
   if (extras.chestDot) fill(23, 21, 2, 2, extras.chestDot)
+
+  // Chest emblems — painted on body front (x=20..27, y=20..31)
+  if (extras.chestSymbol) {
+    const gold:   C = [255, 215, 0,   255]
+    const yellow: C = [255, 230, 0,   255]
+    const sym = extras.chestSymbol
+    // Anchor point: chest center x=23, top y=21
+    if (sym === 'star') {
+      // 5×5 gold star
+      set(23, 21, gold)
+      fill(22, 22, 3, 1, gold)
+      fill(21, 23, 5, 1, gold)
+      fill(22, 24, 3, 1, gold)
+      set(22, 25, gold); set(24, 25, gold)
+    } else if (sym === 'lightning') {
+      // lightning bolt — yellow
+      fill(23, 21, 2, 1, yellow)
+      fill(22, 22, 3, 1, yellow)
+      fill(23, 23, 2, 1, yellow)
+      fill(22, 24, 3, 1, yellow)
+      fill(23, 25, 2, 1, yellow)
+    } else if (sym === 'bat') {
+      // bat silhouette — near-black
+      const bat: C = [20, 20, 20, 255]
+      set(21, 22, bat); set(22, 22, bat); set(25, 22, bat); set(26, 22, bat)
+      fill(21, 23, 6, 1, bat)
+      fill(22, 24, 4, 1, bat)
+      set(23, 25, bat); set(24, 25, bat)
+    } else if (sym === 'S') {
+      // Superman S — red on yellow diamond
+      const sRed: C = [200, 30, 30, 255]
+      fill(22, 21, 4, 1, yellow); set(21, 22, yellow); fill(22, 22, 4, 1, sRed); set(26, 22, yellow)
+      fill(22, 23, 4, 1, yellow)
+      set(21, 24, yellow); fill(22, 24, 4, 1, sRed); set(26, 24, yellow)
+      fill(22, 25, 4, 1, yellow)
+    } else if (sym === 'arc') {
+      // Iron Man arc reactor — blue ring
+      const arc: C = [100, 200, 255, 255]
+      fill(22, 21, 4, 1, arc); fill(22, 25, 4, 1, arc)
+      set(21, 22, arc); set(21, 23, arc); set(21, 24, arc)
+      set(26, 22, arc); set(26, 23, arc); set(26, 24, arc)
+      fill(23, 22, 2, 3, [180, 230, 255, 255])  // bright core
+    }
+  }
 
   // ── ARMS ─────────────────────────────────────────────────────────────────
   fill(40, 16, 4, 4, body);   fill(44, 16, 4, 4, bodyS)
@@ -431,6 +476,210 @@ export function makeJokerSkin(p: SkinPalette): Buffer {
   return toPNG(px, W, H)
 }
 
+/** Spider-Man: red/blue suit with web lines and white eye lenses */
+export function makeSpiderManSkin(_p: SkinPalette): Buffer {
+  const W = 64, H = 64
+  const px = new Uint8Array(W * H * 4)
+
+  const set = (x: number, y: number, c: C) => {
+    if (x < 0 || x >= W || y < 0 || y >= H) return
+    const i = (y * W + x) * 4
+    px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3]
+  }
+  const fill = (x: number, y: number, w: number, h: number, c: C) => {
+    for (let dy = 0; dy < h; dy++)
+      for (let dx = 0; dx < w; dx++)
+        set(x+dx, y+dy, c)
+  }
+  const dim = (c: C, f: number): C =>
+    [Math.min(255, Math.round(c[0]*f)), Math.min(255, Math.round(c[1]*f)), Math.min(255, Math.round(c[2]*f)), c[3]]
+
+  const red:   C = [180, 0,   0,   255]
+  const redD:  C = [130, 0,   0,   255]
+  const blue:  C = [0,   0,   180, 255]
+  const blueD: C = [0,   0,   130, 255]
+  const black: C = [15,  15,  15,  255]
+  const eyeW:  C = [230, 235, 240, 255]
+
+  // HEAD: all red sides/top/back
+  for (let dy = 0; dy < 8; dy++) fill(0,  8+dy, 8, 1, dim(red, dy % 2 === 0 ? 0.80 : 0.70))
+  fill(8, 0, 8, 8, dim(red, 0.85))
+  for (let dy = 0; dy < 8; dy++) fill(16, 8+dy, 8, 1, dim(red, dy % 2 === 0 ? 0.88 : 0.75))
+  fill(24, 8, 8, 8, dim(red, 0.60))
+  fill(16, 0, 8, 8, dim(red, 0.75))
+  // Head top: black web lines over red
+  set(12, 0, black); set(12, 1, black); set(12, 2, black); set(12, 3, black)
+  set(8, 4, black); set(9, 4, black); set(12, 4, black); set(13, 4, black)
+
+  // FACE FRONT: full red mask
+  fill(8, 8, 8, 8, red)
+  // Web lines on face
+  set(12, 8, black); set(12, 9, black)           // vertical center
+  set(10, 9, black); set(14, 9, black)            // horizontal upper
+  set(9, 10, black); set(15, 10, black)           // spreading out
+  set(8, 11, black); set(15, 11, black)
+  // Large white eye lenses (Spider-Man's distinctive eyes)
+  fill(8,  9, 3, 3, eyeW)
+  fill(13, 9, 3, 3, eyeW)
+  set(8,  9, dim(eyeW, 0.8)); set(10, 9, dim(eyeW, 0.8))   // lens sheen
+  set(13, 9, dim(eyeW, 0.8)); set(15, 9, dim(eyeW, 0.8))
+  // Black outline around lenses
+  set(8, 12, black); set(9, 12, black); set(10, 12, black)
+  set(13, 12, black); set(14, 12, black); set(15, 12, black)
+  // Mouth web line
+  fill(9, 14, 6, 1, dim(red, 0.70))
+  fill(8, 15, 8, 1, dim(red, 0.65))
+
+  // BODY: red with black web lines
+  fill(20, 16, 8, 4, red);    fill(28, 16, 8, 4, redD)
+  fill(16, 20, 4, 12, redD);  fill(20, 20, 8, 12, red)
+  fill(28, 20, 4, 12, redD);  fill(32, 20, 8, 12, redD)
+  // Vertical web line down chest center
+  fill(23, 20, 1, 10, black); fill(24, 20, 1, 10, black)
+  // Horizontal web lines
+  set(21, 21, black); set(22, 21, black); set(25, 21, black); set(26, 21, black)
+  set(20, 23, black); set(21, 23, black); set(26, 23, black); set(27, 23, black)
+  set(20, 26, black); set(21, 26, black); set(26, 26, black); set(27, 26, black)
+  set(21, 28, black); set(22, 28, black); set(25, 28, black); set(26, 28, black)
+
+  // ARMS: red
+  fill(40, 16, 4, 4, red);   fill(44, 16, 4, 4, redD)
+  fill(40, 20, 4, 12, redD); fill(44, 20, 4, 12, red)
+  fill(48, 20, 4, 12, redD); fill(52, 20, 4, 12, redD)
+  fill(32, 48, 4, 4, red);   fill(36, 48, 4, 4, redD)
+  fill(32, 52, 4, 12, redD); fill(36, 52, 4, 12, red)
+  fill(40, 52, 4, 12, redD); fill(44, 52, 4, 12, redD)
+  // Web lines on arms
+  fill(44, 22, 1, 8, black); fill(36, 54, 1, 8, black)
+
+  // LEGS: blue
+  fill(0,  16, 4, 4, blue);   fill(4,  16, 4, 4, blueD)
+  fill(0,  20, 4, 12, blueD); fill(4,  20, 4, 12, blue)
+  fill(8,  20, 4, 12, blueD); fill(12, 20, 4, 12, blueD)
+  fill(16, 48, 4, 4, blue);   fill(20, 48, 4, 4, blueD)
+  fill(16, 52, 4, 12, blueD); fill(20, 52, 4, 12, blue)
+  fill(24, 52, 4, 12, blueD); fill(28, 52, 4, 12, blueD)
+
+  // OVERLAY: darker layer for depth
+  const redO:  C = dim(red,  0.85)
+  const blueO: C = dim(blue, 0.85)
+  fill(20, 32, 8, 4, redO);   fill(28, 32, 8, 4, dim(red, 0.65))
+  fill(16, 36, 4, 12, dim(red, 0.65)); fill(20, 36, 8, 12, redO)
+  fill(28, 36, 4, 12, dim(red, 0.65)); fill(32, 36, 8, 12, dim(red, 0.65))
+  fill(44, 32, 4, 4, redO);   fill(48, 32, 4, 4, dim(red, 0.65))
+  fill(40, 36, 4, 12, dim(red, 0.65)); fill(44, 36, 4, 12, redO)
+  fill(48, 36, 4, 12, dim(red, 0.65)); fill(52, 36, 4, 12, dim(red, 0.65))
+  fill(52, 48, 4, 4, redO);   fill(56, 48, 4, 4, dim(red, 0.65))
+  fill(48, 52, 4, 12, dim(red, 0.65)); fill(52, 52, 4, 12, redO)
+  fill(56, 52, 4, 12, dim(red, 0.65)); fill(60, 52, 4, 12, dim(red, 0.65))
+  fill(4,  32, 4, 4, blueO);  fill(8,  32, 4, 4, dim(blue, 0.65))
+  fill(0,  36, 4, 12, dim(blue, 0.65)); fill(4,  36, 4, 12, blueO)
+  fill(8,  36, 4, 12, dim(blue, 0.65)); fill(12, 36, 4, 12, dim(blue, 0.65))
+  fill(4,  48, 4, 4, blueO);  fill(8,  48, 4, 4, dim(blue, 0.65))
+  fill(0,  52, 4, 12, dim(blue, 0.65)); fill(4,  52, 4, 12, blueO)
+  fill(8,  52, 4, 12, dim(blue, 0.65)); fill(12, 52, 4, 12, dim(blue, 0.65))
+
+  return toPNG(px, W, H)
+}
+
+/** Deadpool: red+black suit, oval eye mask, X pattern on chest */
+export function makeDeadpoolSkin(_p: SkinPalette): Buffer {
+  const W = 64, H = 64
+  const px = new Uint8Array(W * H * 4)
+
+  const set = (x: number, y: number, c: C) => {
+    if (x < 0 || x >= W || y < 0 || y >= H) return
+    const i = (y * W + x) * 4
+    px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3]
+  }
+  const fill = (x: number, y: number, w: number, h: number, c: C) => {
+    for (let dy = 0; dy < h; dy++)
+      for (let dx = 0; dx < w; dx++)
+        set(x+dx, y+dy, c)
+  }
+  const dim = (c: C, f: number): C =>
+    [Math.min(255, Math.round(c[0]*f)), Math.min(255, Math.round(c[1]*f)), Math.min(255, Math.round(c[2]*f)), c[3]]
+
+  const red:   C = [180, 0,   0,   255]
+  const redD:  C = [130, 0,   0,   255]
+  const black: C = [15,  15,  15,  255]
+  const blackL: C = [35,  35,  35,  255]
+  const eyeW:  C = [230, 235, 240, 255]
+
+  // HEAD: red all around
+  for (let dy = 0; dy < 8; dy++) fill(0,  8+dy, 8, 1, dim(red, dy % 2 === 0 ? 0.80 : 0.70))
+  fill(8, 0, 8, 8, dim(red, 0.85))
+  for (let dy = 0; dy < 8; dy++) fill(16, 8+dy, 8, 1, dim(red, dy % 2 === 0 ? 0.88 : 0.75))
+  fill(24, 8, 8, 8, dim(red, 0.60))
+  fill(16, 0, 8, 8, dim(red, 0.75))
+
+  // FACE: red base with black oval eye patches
+  fill(8, 8, 8, 8, red)
+  fill(8, 8, 8, 1, dim(red, 0.7))   // top edge
+  // Black oval around each eye (Deadpool's signature look)
+  fill(8,  9, 3, 4, black)           // left eye patch
+  fill(13, 9, 3, 4, black)           // right eye patch
+  // White eye lenses inside the black patches
+  fill(9,  10, 2, 2, eyeW)
+  fill(14, 10, 2, 2, eyeW)
+  // Mouth line
+  fill(10, 14, 4, 1, dim(red, 0.55))
+  fill(9,  15, 6, 1, dim(red, 0.60))
+
+  // BODY: red with black X on chest and dark panel sides
+  fill(20, 16, 8, 4, red);    fill(28, 16, 8, 4, redD)
+  fill(16, 20, 4, 12, black); fill(20, 20, 8, 12, red)   // black side panels
+  fill(28, 20, 4, 12, black); fill(32, 20, 8, 12, black)
+  // X pattern on chest (the Deadpool logo)
+  set(20, 20, red); set(21, 21, black); set(22, 22, black); set(23, 23, black)
+  set(24, 22, black); set(25, 21, black); set(26, 20, red)
+  set(20, 22, red); set(21, 22, black); set(25, 22, black); set(26, 22, red)
+  set(21, 23, black); set(25, 23, black)
+  set(22, 24, black); set(24, 24, black)
+  set(23, 25, black)
+  // Belt
+  fill(20, 30, 8, 2, dim(red, 0.45))
+
+  // ARMS: red with black hand/wrist
+  fill(40, 16, 4, 4, red);   fill(44, 16, 4, 4, redD)
+  fill(40, 20, 4, 10, redD); fill(44, 20, 4, 10, red)
+  fill(48, 20, 4, 10, redD); fill(52, 20, 4, 10, redD)
+  fill(40, 30, 4, 2, black); fill(44, 30, 4, 2, black)   // black wrist
+  fill(32, 48, 4, 4, red);   fill(36, 48, 4, 4, redD)
+  fill(32, 52, 4, 10, redD); fill(36, 52, 4, 10, red)
+  fill(40, 52, 4, 10, redD); fill(44, 52, 4, 10, redD)
+  fill(32, 62, 4, 2, black); fill(36, 62, 4, 2, black)   // black wrist
+
+  // LEGS: black
+  fill(0,  16, 4, 4, black);  fill(4,  16, 4, 4, blackL)
+  fill(0,  20, 4, 12, blackL);fill(4,  20, 4, 12, black)
+  fill(8,  20, 4, 12, blackL);fill(12, 20, 4, 12, blackL)
+  fill(16, 48, 4, 4, black);  fill(20, 48, 4, 4, blackL)
+  fill(16, 52, 4, 12, blackL);fill(20, 52, 4, 12, black)
+  fill(24, 52, 4, 12, blackL);fill(28, 52, 4, 12, blackL)
+
+  // OVERLAY
+  const redO: C = dim(red, 0.87)
+  fill(20, 32, 8, 4, redO);   fill(28, 32, 8, 4, dim(red, 0.67))
+  fill(16, 36, 4, 12, black); fill(20, 36, 8, 12, redO)
+  fill(28, 36, 4, 12, black); fill(32, 36, 8, 12, black)
+  fill(44, 32, 4, 4, redO);   fill(48, 32, 4, 4, dim(red, 0.67))
+  fill(40, 36, 4, 12, dim(red, 0.67)); fill(44, 36, 4, 12, redO)
+  fill(48, 36, 4, 12, dim(red, 0.67)); fill(52, 36, 4, 12, dim(red, 0.67))
+  fill(52, 48, 4, 4, redO);   fill(56, 48, 4, 4, dim(red, 0.67))
+  fill(48, 52, 4, 12, dim(red, 0.67)); fill(52, 52, 4, 12, redO)
+  fill(56, 52, 4, 12, dim(red, 0.67)); fill(60, 52, 4, 12, dim(red, 0.67))
+  const bkO: C = dim(black, 0.87)
+  fill(4,  32, 4, 4, bkO);    fill(8,  32, 4, 4, dim(black, 0.67))
+  fill(0,  36, 4, 12, dim(black, 0.67)); fill(4,  36, 4, 12, bkO)
+  fill(8,  36, 4, 12, dim(black, 0.67)); fill(12, 36, 4, 12, dim(black, 0.67))
+  fill(4,  48, 4, 4, bkO);    fill(8,  48, 4, 4, dim(black, 0.67))
+  fill(0,  52, 4, 12, dim(black, 0.67)); fill(4,  52, 4, 12, bkO)
+  fill(8,  52, 4, 12, dim(black, 0.67)); fill(12, 52, 4, 12, dim(black, 0.67))
+
+  return toPNG(px, W, H)
+}
+
 // ── Character colour palettes ─────────────────────────────────────────────────
 
 const L: C = [255, 213, 170, 255]
@@ -537,25 +786,27 @@ const BY_SLUG: Record<string, SkinPalette> = {
 const EXTRAS_BY_SLUG: Record<string, SkinExtras> = {
   'naruto':          { whiskers: true },
   'gojo':            { blindfold: true },
-  'batman':          { darkMask: true },
-  'deadpool':        { darkMask: true },
+  'batman':          { darkMask: true, chestSymbol: 'bat' },
   'wolverine':       { wolverineMask: true },
-  'iron-man':        { chestDot: [100, 200, 255, 255] },
-  'captain-america': { chestDot: [200, 30,  30,  255] },
+  'iron-man':        { chestSymbol: 'arc' },
+  'captain-america': { chestSymbol: 'star' },
   'doctor-strange':  { chestDot: [220, 180, 20,  255] },
-  'flash':           { chestDot: [255, 220, 0,   255] },
-  'superman':        { chestDot: [255, 220, 0,   255] },
+  'flash':           { chestSymbol: 'lightning' },
+  'superman':        { chestSymbol: 'S' },
   'herobrine':       { blindfold: true },
   'loki':            { chestDot: [180, 180, 0,   255] },
   'thor':            { thorHelmet: true, chestDot: [200, 200, 50,  255] },
   'wanda':           { chestDot: [220, 50,  50,  255] },
-  'black-panther':   { darkMask: true },
+  'black-panther':   { darkMask: true, chestDot: [80, 80, 200, 255] },
+  'black-widow':     { darkMask: true, chestDot: [200, 0, 0, 255] },
 }
 
 // Slugs that use specialized painters
 const SPECIALIZED: Record<string, (p: SkinPalette) => Buffer> = {
-  'venom': makeVenomSkin,
-  'joker': makeJokerSkin,
+  'venom':      makeVenomSkin,
+  'joker':      makeJokerSkin,
+  'spider-man': makeSpiderManSkin,
+  'deadpool':   makeDeadpoolSkin,
 }
 
 /** Single entry point: dispatches to specialized painter or generic generator */
