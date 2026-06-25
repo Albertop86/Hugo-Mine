@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
 import { CHARACTERS } from '@/lib/characterOfTheDay'
-import { makeCharacterSkin, getPalette, getExtras } from '@/lib/characterSkinGenerator'
+import { buildCharacterSkin } from '@/lib/characterSkinGenerator'
 
 export const maxDuration = 300
 
@@ -16,8 +16,8 @@ export async function GET(req: Request) {
 
   for (const char of targets) {
     try {
-      const buf = makeCharacterSkin(getPalette(char.slug, char.category), getExtras(char.slug))
-      await put(`skins/characters/${char.slug}.png`, buf, {
+      const buf = buildCharacterSkin(char.slug, char.category)
+      await put(`skins/v2/characters/${char.slug}.png`, buf, {
         access: 'public', contentType: 'image/png', addRandomSuffix: false, allowOverwrite: true,
       })
       results.push({ slug: char.slug, ok: true })

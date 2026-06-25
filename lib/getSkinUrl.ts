@@ -2,12 +2,16 @@ import { type Character } from './characterOfTheDay'
 
 const BLOB_BASE = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
 
+// Bump this when skin painters change significantly — forces all cached skins to regenerate
+const SKIN_VERSION = 'v2'
+
 // Returns a URL for the character's skin, generating and storing it in Blob if needed.
 // Safe to call from server components and API routes.
 export async function getSkinUrl(char: Character): Promise<string | null> {
   if (char.skinFile) return `/skins/premade/${char.skinFile}.png`
 
-  const cdnUrl = `${BLOB_BASE}/skins/characters/${char.slug}.png`
+  const blobPath = `skins/${SKIN_VERSION}/characters/${char.slug}.png`
+  const cdnUrl   = `${BLOB_BASE}/${blobPath}`
 
   // Fast path: already in Blob CDN
   try {
@@ -22,7 +26,7 @@ export async function getSkinUrl(char: Character): Promise<string | null> {
       import('@vercel/blob'),
     ])
     const buf = buildCharacterSkin(char.slug, char.category)
-    const { url } = await put(`skins/characters/${char.slug}.png`, buf, {
+    const { url } = await put(blobPath, buf, {
       access: 'public', contentType: 'image/png', addRandomSuffix: false, allowOverwrite: true,
     })
     return url
