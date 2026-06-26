@@ -680,6 +680,295 @@ export function makeDeadpoolSkin(_p: SkinPalette): Buffer {
   return toPNG(px, W, H)
 }
 
+/** Dream (dream-smp): iconic white smiley mask + green hoodie */
+export function makeDreamSkin(_p: SkinPalette): Buffer {
+  const W = 64, H = 64
+  const px = new Uint8Array(W * H * 4)
+  const set = (x: number, y: number, c: C) => {
+    if (x < 0 || x >= W || y < 0 || y >= H) return
+    const i = (y * W + x) * 4
+    px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3]
+  }
+  const fill = (x: number, y: number, w: number, h: number, c: C) => {
+    for (let dy = 0; dy < h; dy++)
+      for (let dx = 0; dx < w; dx++)
+        set(x+dx, y+dy, c)
+  }
+  const dim = (c: C, f: number): C =>
+    [Math.min(255, Math.round(c[0]*f)), Math.min(255, Math.round(c[1]*f)), Math.min(255, Math.round(c[2]*f)), c[3]]
+
+  const white:  C = [248, 248, 245, 255]
+  const whiteD: C = [210, 210, 208, 255]
+  const black:  C = [15,  15,  15,  255]
+  const blond:  C = [210, 185, 100, 255]
+  const green:  C = [100, 185, 65,  255]
+  const greenD: C = [70,  140, 45,  255]
+  const gray:   C = [200, 200, 200, 255]
+  const grayD:  C = [150, 150, 150, 255]
+
+  // HEAD: blond hair sides/top/back
+  for (let dy = 0; dy < 8; dy++) fill(0,  8+dy, 8, 1, dim(blond, dy%2===0 ? 0.82 : 0.75))
+  fill(8, 0, 8, 8, blond)
+  for (let dy = 0; dy < 8; dy++) fill(16, 8+dy, 8, 1, dim(blond, dy%2===0 ? 0.88 : 0.80))
+  fill(24, 8, 8, 8, dim(blond, 0.65))
+  fill(16, 0, 8, 8, dim(blond, 0.75))
+
+  // FACE: solid white mask — Dream's signature
+  fill(8, 8, 8, 8, white)
+  fill(8, 8, 8, 1, dim(blond, 0.85))      // hairline
+  // Black oval eyes (simple, no whites)
+  fill(9,  10, 2, 2, black)
+  fill(13, 10, 2, 2, black)
+  // Curved smile: corners + bottom arc
+  set(9,  13, black); set(14, 13, black)
+  fill(10, 14, 4, 1, black)
+  // Chin shadow
+  fill(8,  15, 8, 1, whiteD)
+
+  // BODY: green hoodie
+  fill(20, 16, 8, 4, green);    fill(28, 16, 8, 4, greenD)
+  fill(16, 20, 4, 12, greenD);  fill(20, 20, 8, 12, green)
+  fill(28, 20, 4, 12, greenD);  fill(32, 20, 8, 12, greenD)
+  fill(20, 30, 8, 2, dim(green, 0.55))     // belt/waistband
+
+  // ARMS: green hoodie sleeves
+  fill(40, 16, 4, 4, green);   fill(44, 16, 4, 4, greenD)
+  fill(40, 20, 4, 10, greenD); fill(44, 20, 4, 10, green)
+  fill(48, 20, 4, 10, greenD); fill(52, 20, 4, 10, greenD)
+  fill(40, 30, 4, 2, white);   fill(44, 30, 4, 2, whiteD)  // white wrist cuffs
+  fill(32, 48, 4, 4, green);   fill(36, 48, 4, 4, greenD)
+  fill(32, 52, 4, 10, greenD); fill(36, 52, 4, 10, green)
+  fill(40, 52, 4, 10, greenD); fill(44, 52, 4, 10, greenD)
+  fill(32, 62, 4, 2, white);   fill(36, 62, 4, 2, whiteD)
+
+  // LEGS: light gray
+  fill(0,  16, 4, 4, gray);    fill(4,  16, 4, 4, grayD)
+  fill(0,  20, 4, 12, grayD);  fill(4,  20, 4, 12, gray)
+  fill(8,  20, 4, 12, grayD);  fill(12, 20, 4, 12, grayD)
+  fill(16, 48, 4, 4, gray);    fill(20, 48, 4, 4, grayD)
+  fill(16, 52, 4, 12, grayD);  fill(20, 52, 4, 12, gray)
+  fill(24, 52, 4, 12, grayD);  fill(28, 52, 4, 12, grayD)
+
+  // OVERLAY
+  const gO  = dim(green, 0.85); const gOS = dim(green, 0.65)
+  const gyO = dim(gray,  0.85); const gyS = dim(gray,  0.65)
+  fill(20, 32, 8, 4, gO);   fill(28, 32, 8, 4, gOS)
+  fill(16, 36, 4, 12, gOS); fill(20, 36, 8, 12, gO)
+  fill(28, 36, 4, 12, gOS); fill(32, 36, 8, 12, gOS)
+  fill(44, 32, 4, 4, gO);   fill(48, 32, 4, 4, gOS)
+  fill(40, 36, 4, 12, gOS); fill(44, 36, 4, 12, gO)
+  fill(48, 36, 4, 12, gOS); fill(52, 36, 4, 12, gOS)
+  fill(52, 48, 4, 4, gO);   fill(56, 48, 4, 4, gOS)
+  fill(48, 52, 4, 12, gOS); fill(52, 52, 4, 12, gO)
+  fill(56, 52, 4, 12, gOS); fill(60, 52, 4, 12, gOS)
+  fill(4,  32, 4, 4, gyO);  fill(8,  32, 4, 4, gyS)
+  fill(0,  36, 4, 12, gyS); fill(4,  36, 4, 12, gyO)
+  fill(8,  36, 4, 12, gyS); fill(12, 36, 4, 12, gyS)
+  fill(4,  48, 4, 4, gyO);  fill(8,  48, 4, 4, gyS)
+  fill(0,  52, 4, 12, gyS); fill(4,  52, 4, 12, gyO)
+  fill(8,  52, 4, 12, gyS); fill(12, 52, 4, 12, gyS)
+
+  return toPNG(px, W, H)
+}
+
+/** Technoblade: pig face with crown + maroon royal cape */
+export function makeTechnobladeSkin(_p: SkinPalette): Buffer {
+  const W = 64, H = 64
+  const px = new Uint8Array(W * H * 4)
+  const set = (x: number, y: number, c: C) => {
+    if (x < 0 || x >= W || y < 0 || y >= H) return
+    const i = (y * W + x) * 4
+    px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3]
+  }
+  const fill = (x: number, y: number, w: number, h: number, c: C) => {
+    for (let dy = 0; dy < h; dy++)
+      for (let dx = 0; dx < w; dx++)
+        set(x+dx, y+dy, c)
+  }
+  const dim = (c: C, f: number): C =>
+    [Math.min(255, Math.round(c[0]*f)), Math.min(255, Math.round(c[1]*f)), Math.min(255, Math.round(c[2]*f)), c[3]]
+
+  const pig:   C = [235, 155, 155, 255]
+  const pigD:  C = [195, 115, 115, 255]
+  const pigE:  C = [210, 100, 100, 255]  // ear/snout
+  const snout: C = [215, 130, 130, 255]
+  const nostrl:C = [160,  70,  70, 255]
+  const maroon:C = [140,  10,  10, 255]
+  const maroonD:C= [100,   5,   5, 255]
+  const gold:  C = [220, 185,  20, 255]
+  const goldD: C = [170, 135,  10, 255]
+  const black: C = [15,  15,  15,  255]
+  const gray:  C = [60,  60,  60,  255]
+
+  // HEAD sides: pig pink
+  for (let dy = 0; dy < 8; dy++) fill(0,  8+dy, 8, 1, dim(pig, dy%2===0 ? 0.85 : 0.78))
+  fill(8, 0, 8, 8, pig)
+  for (let dy = 0; dy < 8; dy++) fill(16, 8+dy, 8, 1, dim(pig, dy%2===0 ? 0.90 : 0.83))
+  fill(24, 8, 8, 8, dim(pig, 0.65))
+  fill(16, 0, 8, 8, dim(pig, 0.80))
+  // CROWN: gold zigzag on head top (UV 8,0–15,7)
+  fill(8, 0, 8, 1, gold)           // base row of crown
+  set(8, 1, goldD); set(10, 1, goldD); set(12, 1, goldD); set(14, 1, goldD)  // points
+  set(9, 2, gold);  set(11, 2, gold);  set(13, 2, gold);  set(15, 2, gold)   // gaps
+  // Pig ears on head right side (UV 0,8–7,15)
+  fill(0, 8, 3, 3, pigE)           // left ear
+  fill(5, 8, 3, 3, pigE)           // right ear
+
+  // FACE: pig pink
+  fill(8, 8, 8, 8, pig)
+  fill(8, 8, 8, 1, pigE)           // top band (ears connect)
+  // Eyes: small dark eyes
+  fill(9,  10, 2, 1, black)
+  fill(13, 10, 2, 1, black)
+  // Pig snout: oval at nose area
+  fill(10, 12, 5, 2, snout)
+  set(11, 12, nostrl); set(13, 12, nostrl)  // nostrils
+  // Chin
+  fill(8, 15, 8, 1, pigD)
+
+  // BODY: maroon royal cape
+  fill(20, 16, 8, 4, maroon);   fill(28, 16, 8, 4, maroonD)
+  fill(16, 20, 4, 12, maroonD); fill(20, 20, 8, 12, maroon)
+  fill(28, 20, 4, 12, maroonD); fill(32, 20, 8, 12, maroonD)
+  // Gold trim on chest
+  fill(20, 20, 8, 1, gold)
+  fill(20, 31, 8, 1, gold)
+  set(20, 21, gold); set(27, 21, gold)   // vertical gold trim
+  set(20, 30, gold); set(27, 30, gold)
+
+  // ARMS: maroon
+  fill(40, 16, 4, 4, maroon);   fill(44, 16, 4, 4, maroonD)
+  fill(40, 20, 4, 12, maroonD); fill(44, 20, 4, 12, maroon)
+  fill(48, 20, 4, 12, maroonD); fill(52, 20, 4, 12, maroonD)
+  fill(32, 48, 4, 4, maroon);   fill(36, 48, 4, 4, maroonD)
+  fill(32, 52, 4, 12, maroonD); fill(36, 52, 4, 12, maroon)
+  fill(40, 52, 4, 12, maroonD); fill(44, 52, 4, 12, maroonD)
+
+  // LEGS: dark gray
+  fill(0,  16, 4, 4, gray);    fill(4,  16, 4, 4, dim(gray,0.8))
+  fill(0,  20, 4, 12, dim(gray,0.8)); fill(4,  20, 4, 12, gray)
+  fill(8,  20, 4, 12, dim(gray,0.8)); fill(12, 20, 4, 12, dim(gray,0.8))
+  fill(16, 48, 4, 4, gray);    fill(20, 48, 4, 4, dim(gray,0.8))
+  fill(16, 52, 4, 12, dim(gray,0.8)); fill(20, 52, 4, 12, gray)
+  fill(24, 52, 4, 12, dim(gray,0.8)); fill(28, 52, 4, 12, dim(gray,0.8))
+
+  // OVERLAY
+  const mO = dim(maroon, 0.87); const mOS = dim(maroon, 0.67)
+  const gO = dim(gray,   0.87); const gOS = dim(gray,   0.67)
+  fill(20, 32, 8, 4, mO);   fill(28, 32, 8, 4, mOS)
+  fill(16, 36, 4, 12, mOS); fill(20, 36, 8, 12, mO)
+  fill(28, 36, 4, 12, mOS); fill(32, 36, 8, 12, mOS)
+  fill(44, 32, 4, 4, mO);   fill(48, 32, 4, 4, mOS)
+  fill(40, 36, 4, 12, mOS); fill(44, 36, 4, 12, mO)
+  fill(48, 36, 4, 12, mOS); fill(52, 36, 4, 12, mOS)
+  fill(52, 48, 4, 4, mO);   fill(56, 48, 4, 4, mOS)
+  fill(48, 52, 4, 12, mOS); fill(52, 52, 4, 12, mO)
+  fill(56, 52, 4, 12, mOS); fill(60, 52, 4, 12, mOS)
+  fill(4,  32, 4, 4, gO);   fill(8,  32, 4, 4, gOS)
+  fill(0,  36, 4, 12, gOS); fill(4,  36, 4, 12, gO)
+  fill(8,  36, 4, 12, gOS); fill(12, 36, 4, 12, gOS)
+  fill(4,  48, 4, 4, gO);   fill(8,  48, 4, 4, gOS)
+  fill(0,  52, 4, 12, gOS); fill(4,  52, 4, 12, gO)
+  fill(8,  52, 4, 12, gOS); fill(12, 52, 4, 12, gOS)
+
+  return toPNG(px, W, H)
+}
+
+/** Philza: angel — black robes with white wing overlay on arms */
+export function makePhilzaSkin(_p: SkinPalette): Buffer {
+  const W = 64, H = 64
+  const px = new Uint8Array(W * H * 4)
+  const set = (x: number, y: number, c: C) => {
+    if (x < 0 || x >= W || y < 0 || y >= H) return
+    const i = (y * W + x) * 4
+    px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3]
+  }
+  const fill = (x: number, y: number, w: number, h: number, c: C) => {
+    for (let dy = 0; dy < h; dy++)
+      for (let dx = 0; dx < w; dx++)
+        set(x+dx, y+dy, c)
+  }
+  const dim = (c: C, f: number): C =>
+    [Math.min(255, Math.round(c[0]*f)), Math.min(255, Math.round(c[1]*f)), Math.min(255, Math.round(c[2]*f)), c[3]]
+
+  const skin:  C = [255, 215, 172, 255]
+  const hair:  C = [220, 220, 220, 255]
+  const hairD: C = [170, 170, 170, 255]
+  const black: C = [18,  18,  18,  255]
+  const blackL:C = [38,  38,  38,  255]
+  const eyeW:  C = [230, 228, 220, 255]
+  const eyeD:  C = [30,  20,  10,  255]
+  const brow   = dim(hairD, 0.7)
+  const wing:  C = [245, 245, 242, 255]
+  const wingD: C = [195, 195, 193, 255]
+
+  // HEAD: white/silver hair
+  for (let dy = 0; dy < 8; dy++) fill(0,  8+dy, 8, 1, dim(hair, dy%2===0 ? 0.82 : 0.75))
+  fill(8, 0, 8, 8, hair)
+  for (let dy = 0; dy < 8; dy++) fill(16, 8+dy, 8, 1, dim(hair, dy%2===0 ? 0.88 : 0.82))
+  fill(24, 8, 8, 8, dim(hair, 0.65))
+  fill(16, 0, 8, 8, dim(hair, 0.80))
+
+  // FACE: normal skin
+  fill(8, 8, 8, 8, skin)
+  fill(8, 8, 8, 1, hair)
+  fill(9, 9, 3, 1, brow); fill(13, 9, 3, 1, brow)
+  fill(9,  10, 2, 2, eyeW); fill(13, 10, 2, 2, eyeW)
+  set(10, 10, eyeD); set(10, 11, eyeD); set(14, 10, eyeD); set(14, 11, eyeD)
+  set(12, 12, dim(skin, 0.82))
+  fill(10, 14, 4, 1, dim(skin, 0.60))
+  fill(8,  15, 8, 1, dim(skin, 0.90))
+
+  // BODY: black robes
+  fill(20, 16, 8, 4, black);    fill(28, 16, 8, 4, blackL)
+  fill(16, 20, 4, 12, blackL);  fill(20, 20, 8, 12, black)
+  fill(28, 20, 4, 12, blackL);  fill(32, 20, 8, 12, blackL)
+  fill(20, 30, 8, 2, dim(black, 0.6))
+
+  // ARMS: black sleeves (wing whites are on OVERLAY)
+  fill(40, 16, 4, 4, black);   fill(44, 16, 4, 4, blackL)
+  fill(40, 20, 4, 12, blackL); fill(44, 20, 4, 12, black)
+  fill(48, 20, 4, 12, blackL); fill(52, 20, 4, 12, blackL)
+  fill(32, 48, 4, 4, black);   fill(36, 48, 4, 4, blackL)
+  fill(32, 52, 4, 12, blackL); fill(36, 52, 4, 12, black)
+  fill(40, 52, 4, 12, blackL); fill(44, 52, 4, 12, blackL)
+
+  // LEGS: black
+  fill(0,  16, 4, 4, black);   fill(4,  16, 4, 4, blackL)
+  fill(0,  20, 4, 12, blackL); fill(4,  20, 4, 12, black)
+  fill(8,  20, 4, 12, blackL); fill(12, 20, 4, 12, blackL)
+  fill(16, 48, 4, 4, black);   fill(20, 48, 4, 4, blackL)
+  fill(16, 52, 4, 12, blackL); fill(20, 52, 4, 12, black)
+  fill(24, 52, 4, 12, blackL); fill(28, 52, 4, 12, blackL)
+
+  // OVERLAY: white wing feathers on arm outer faces
+  // Right arm overlay (UV 44,32 – outer face at 44,36)
+  fill(44, 32, 4, 4, wing)                          // shoulder feathers
+  fill(44, 36, 4, 12, wing);  fill(48, 36, 4, 12, wingD) // wing primary
+  fill(52, 36, 4, 12, wingD)
+  // Left arm overlay (UV 52,48 — outer at 52,52)
+  fill(52, 48, 4, 4, wing)
+  fill(52, 52, 4, 12, wing);  fill(56, 52, 4, 12, wingD)
+  fill(60, 52, 4, 12, wingD)
+  // Body overlay: black robe
+  const bkO = dim(black, 0.87)
+  fill(20, 32, 8, 4, bkO);   fill(28, 32, 8, 4, dim(black,0.67))
+  fill(16, 36, 4, 12, dim(black,0.67)); fill(20, 36, 8, 12, bkO)
+  fill(28, 36, 4, 12, dim(black,0.67)); fill(32, 36, 8, 12, dim(black,0.67))
+  // Left sleeve overlay: also black (under wing)
+  fill(40, 36, 4, 12, dim(black,0.67)); fill(44, 36, 4, 12, bkO)   // overwritten by wing above
+  // Legs overlay
+  const lgO = dim(black, 0.87)
+  fill(4,  32, 4, 4, lgO);   fill(8,  32, 4, 4, dim(black,0.67))
+  fill(0,  36, 4, 12, dim(black,0.67)); fill(4,  36, 4, 12, lgO)
+  fill(8,  36, 4, 12, dim(black,0.67)); fill(12, 36, 4, 12, dim(black,0.67))
+  fill(4,  48, 4, 4, lgO);   fill(8,  48, 4, 4, dim(black,0.67))
+  fill(0,  52, 4, 12, dim(black,0.67)); fill(4,  52, 4, 12, lgO)
+  fill(8,  52, 4, 12, dim(black,0.67)); fill(12, 52, 4, 12, dim(black,0.67))
+
+  return toPNG(px, W, H)
+}
+
 // ── Character colour palettes ─────────────────────────────────────────────────
 
 const L: C = [255, 213, 170, 255]
@@ -757,8 +1046,8 @@ const BY_SLUG: Record<string, SkinPalette> = {
   'dream-smp':        { face: L, hair: [200,200,200,255],   body: [200,200,200,255],  legs: [150,150,150,255] },
   'technoblade':      { face: [220,150,150,255],hair: [180,0,0,255],     body: [200,0,0,255],      legs: [150,0,0,255] },
   'philza':           { face: L, hair: [220,220,220,255],   body: [30,30,30,255],     legs: [20,20,20,255] },
-  'ibai':             { face: L, hair: [30,30,30,255],      body: [0,100,200,255],    legs: [20,20,80,255] },
-  'rubius':           { face: L, hair: [220,20,20,255],     body: [200,30,30,255],    legs: [20,20,20,255] },
+  'ibai':             { face: L, hair: [20,20,20,255],      body: [0,130,230,255],    legs: [15,15,80,255] },
+  'rubius':           { face: L, hair: [210,30,30,255],     body: [190,25,25,255],    legs: [15,15,15,255] },
   'among-us-red':     { face: [180,0,0,255],    hair: [150,0,0,255],     body: [180,0,0,255],      legs: [140,0,0,255] },
   'sus-crewmate':     { face: [100,0,180,255],  hair: [80,0,150,255],    body: [100,0,180,255],    legs: [80,0,140,255] },
   'herobrine':        { face: M, hair: [100,70,30,255],     body: [100,70,30,255],    legs: [60,40,20,255] },
@@ -799,14 +1088,19 @@ const EXTRAS_BY_SLUG: Record<string, SkinExtras> = {
   'wanda':           { chestDot: [220, 50,  50,  255] },
   'black-panther':   { darkMask: true, chestDot: [80, 80, 200, 255] },
   'black-widow':     { darkMask: true, chestDot: [200, 0, 0, 255] },
+  'ibai':            { chestDot: [140, 200, 255, 255] },  // Twitch purple-blue mic
+  'rubius':          { chestDot: [255, 80,  80,  255] },  // red accent
 }
 
 // Slugs that use specialized painters
 const SPECIALIZED: Record<string, (p: SkinPalette) => Buffer> = {
-  'venom':      makeVenomSkin,
-  'joker':      makeJokerSkin,
-  'spider-man': makeSpiderManSkin,
-  'deadpool':   makeDeadpoolSkin,
+  'venom':       makeVenomSkin,
+  'joker':       makeJokerSkin,
+  'spider-man':  makeSpiderManSkin,
+  'deadpool':    makeDeadpoolSkin,
+  'dream-smp':   makeDreamSkin,
+  'technoblade': makeTechnobladeSkin,
+  'philza':      makePhilzaSkin,
 }
 
 /** Single entry point: dispatches to specialized painter or generic generator */
