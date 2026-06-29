@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { getCharacterBySlug, getAllCharacterSlugs, CHARACTERS } from '@/lib/characterOfTheDay'
 import { getSkinUrl } from '@/lib/getSkinUrl'
 import { CHARACTER_FUN_FACTS } from '@/lib/characterFunFacts'
+import { CHARACTER_DESCRIPTIONS } from '@/lib/characterDescriptions'
 import { routing } from '@/lib/i18n/routing'
 import SkinDisplay from '@/components/SkinDisplay'
 import AmazonBox from '@/components/AmazonBox'
@@ -138,6 +139,15 @@ export default async function SkinCharacterPage({ params }: Props) {
     ?? CHARACTER_FUN_FACTS[char.slug]?.en
   const funFact = content?.funFact ?? staticFact
 
+  const staticDesc = CHARACTER_DESCRIPTIONS[char.slug]?.[locale as 'es'|'en'|'fr'|'pt']
+    ?? CHARACTER_DESCRIPTIONS[char.slug]?.en
+  const descriptionText = content?.description ?? staticDesc?.description
+    ?? (locale === 'es' ? `Descarga gratis la skin de ${name} para Minecraft Java y Bedrock.`
+      : locale === 'fr' ? `Téléchargez gratuitement le skin ${name} pour Minecraft.`
+      : locale === 'pt' ? `Baixe gratuitamente o skin de ${name} para Minecraft.`
+      : `Download the free ${name} skin for Minecraft Java and Bedrock.`)
+  const introText = content?.intro ?? staticDesc?.intro
+
   // Resolve skin URL — generate if not yet in Blob
   const skinUrl = data?.skinUrl ?? await getSkinUrl(char)
 
@@ -231,9 +241,7 @@ export default async function SkinCharacterPage({ params }: Props) {
               : `${name} Minecraft Skin`)}
           </h1>
           <p className="opacity-60 text-base">
-            {content?.description ?? (locale === 'es'
-              ? `Descarga gratis la skin de ${name} para Minecraft Java y Bedrock.`
-              : `Download the free ${name} skin for Minecraft Java and Bedrock.`)}
+            {descriptionText}
           </p>
         </div>
 
@@ -255,10 +263,10 @@ export default async function SkinCharacterPage({ params }: Props) {
           )}
         </div>
 
-        {/* Intro / placeholder */}
-        {content?.intro ? (
+        {/* Intro / static description fallback */}
+        {introText ? (
           <p className="text-base leading-relaxed mb-8" style={{ color: 'var(--color-earth)' }}>
-            {content.intro}
+            {introText}
           </p>
         ) : (
           <div className="rounded-2xl p-4 mb-8 text-center"

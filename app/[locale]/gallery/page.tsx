@@ -130,9 +130,12 @@ export default function GalleryPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  // Exclude premade skins that already have a dedicated character page (to avoid duplicates)
+  const charSkinFiles = new Set(CHARACTERS.flatMap(c => c.skinFile ? [c.skinFile] : []))
+  const premadeOnly = PREMADE_SKINS.filter(s => !charSkinFiles.has(s.id))
   const filteredPremade = activeCategory === 'all'
-    ? PREMADE_SKINS
-    : PREMADE_SKINS.filter(s => s.category === activeCategory)
+    ? premadeOnly
+    : premadeOnly.filter(s => s.category === activeCategory)
 
   const filteredChars = activeCharCategory === 'all'
     ? CHARACTERS

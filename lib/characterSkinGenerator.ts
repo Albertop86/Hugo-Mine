@@ -969,6 +969,76 @@ export function makePhilzaSkin(_p: SkinPalette): Buffer {
   return toPNG(px, W, H)
 }
 
+/** Among Us crewmate — full suit, large dark visor with blue reflection, backpack */
+export function makeAmongUsSkin(p: SkinPalette): Buffer {
+  const W = 64, H = 64
+  const px = new Uint8Array(W * H * 4)
+  const set = (x: number, y: number, c: C) => {
+    if (x < 0 || x >= W || y < 0 || y >= H) return
+    const i = (y * W + x) * 4
+    px[i] = c[0]; px[i+1] = c[1]; px[i+2] = c[2]; px[i+3] = c[3]
+  }
+  const fill = (x: number, y: number, w: number, h: number, c: C) => {
+    for (let dy = 0; dy < h; dy++)
+      for (let dx = 0; dx < w; dx++)
+        set(x+dx, y+dy, c)
+  }
+  const dim = (c: C, f: number): C =>
+    [Math.min(255, Math.round(c[0]*f)), Math.min(255, Math.round(c[1]*f)), Math.min(255, Math.round(c[2]*f)), c[3]]
+
+  const suit:  C = p.body
+  const suitD: C = dim(suit, 0.78)
+  const suitDD:C = dim(suit, 0.60)
+  const visor: C = [10, 15, 35, 255]      // near-black dark blue visor
+  const shine: C = [130, 210, 255, 255]   // bright blue visor reflection
+  const shineD:C = [60, 150, 220, 255]    // softer reflection
+
+  // HEAD: all suit color (no hair — it's a space suit helmet)
+  fill(8,  0, 8, 8, suit)                // head top
+  fill(0,  8, 8, 8, suitD)              // head right side
+  fill(16, 8, 8, 8, suitD)              // head left side
+  fill(24, 8, 8, 8, suitDD)             // head back
+  fill(16, 0, 8, 8, suitD)              // head bottom
+
+  // FACE FRONT (8,8)–(15,15): suit base with large dark visor
+  fill(8, 8, 8, 8, suit)                // suit helmet base
+  // Visor — large oval covering most of face
+  fill(9,  9, 6, 5, visor)              // visor main body (6 wide × 5 tall)
+  fill(10, 14, 4, 1, visor)             // visor bottom rounded
+  // Light blue shine (top-left corner of visor)
+  set(10, 10, shine)
+  set(11, 10, shineD)
+  set(10, 11, shineD)
+
+  // BODY
+  fill(20, 16, 8, 4, suit);   fill(28, 16, 8, 4, suitD)    // top / bottom
+  fill(16, 20, 4, 12, suitD); fill(20, 20, 8, 12, suit)    // right side / front
+  fill(28, 20, 4, 12, suitD)                                // left side
+  // BACKPACK on body back — distinctive Among Us oxygen tank
+  fill(32, 20, 8, 12, suitDD)                               // back base
+  fill(33, 22, 4, 7, dim(suit, 0.45))                       // tank cylinder (darker)
+  fill(34, 21, 2, 1, dim(suit, 0.35))                       // tank top cap
+  fill(34, 29, 2, 1, dim(suit, 0.35))                       // tank bottom cap
+
+  // ARMS (slightly shorter-looking by making them fully suit-colored)
+  fill(44, 16, 4, 4, suit);   fill(40, 16, 4, 4, suitD)
+  fill(44, 20, 4, 12, suit);  fill(40, 20, 4, 12, suitD)
+  fill(48, 20, 4, 12, suitD); fill(52, 20, 4, 12, suitDD)
+  fill(36, 48, 4, 4, suit);   fill(32, 48, 4, 4, suitD)
+  fill(36, 52, 4, 12, suit);  fill(32, 52, 4, 12, suitD)
+  fill(40, 52, 4, 12, suitD); fill(44, 52, 4, 12, suitDD)
+
+  // LEGS
+  fill(4,  16, 4, 4, suit);   fill(0,  16, 4, 4, suitD)
+  fill(4,  20, 4, 12, suit);  fill(0,  20, 4, 12, suitD)
+  fill(8,  20, 4, 12, suitD); fill(12, 20, 4, 12, suitDD)
+  fill(20, 48, 4, 4, suit);   fill(16, 48, 4, 4, suitD)
+  fill(20, 52, 4, 12, suit);  fill(16, 52, 4, 12, suitD)
+  fill(24, 52, 4, 12, suitD); fill(28, 52, 4, 12, suitDD)
+
+  return toPNG(px, W, H)
+}
+
 // ── Character colour palettes ─────────────────────────────────────────────────
 
 const L: C = [255, 213, 170, 255]
@@ -1094,13 +1164,15 @@ const EXTRAS_BY_SLUG: Record<string, SkinExtras> = {
 
 // Slugs that use specialized painters
 const SPECIALIZED: Record<string, (p: SkinPalette) => Buffer> = {
-  'venom':       makeVenomSkin,
-  'joker':       makeJokerSkin,
-  'spider-man':  makeSpiderManSkin,
-  'deadpool':    makeDeadpoolSkin,
-  'dream-smp':   makeDreamSkin,
-  'technoblade': makeTechnobladeSkin,
-  'philza':      makePhilzaSkin,
+  'venom':        makeVenomSkin,
+  'joker':        makeJokerSkin,
+  'spider-man':   makeSpiderManSkin,
+  'deadpool':     makeDeadpoolSkin,
+  'dream-smp':    makeDreamSkin,
+  'technoblade':  makeTechnobladeSkin,
+  'philza':       makePhilzaSkin,
+  'among-us-red': makeAmongUsSkin,
+  'sus-crewmate': makeAmongUsSkin,
 }
 
 /** Single entry point: dispatches to specialized painter or generic generator */
