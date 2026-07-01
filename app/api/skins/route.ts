@@ -30,13 +30,13 @@ function writeSkinsFs(skins: CommunitySkin[]) {
 
 // ── Vercel Blob backend (production) ─────────────────────────────────
 const LIST_BLOB_PATH = 'skinme/community-list.json'
+const BLOB_CDN_BASE  = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
 
 async function readSkinsBlob(): Promise<CommunitySkin[]> {
   try {
-    const { list } = await import('@vercel/blob')
-    const { blobs } = await list({ prefix: LIST_BLOB_PATH })
-    if (!blobs.length) return []
-    const res = await fetch(blobs[0].url, { cache: 'no-store' })
+    // Direct HTTP GET — does NOT consume Advanced Request quota (unlike list())
+    const res = await fetch(`${BLOB_CDN_BASE}/${LIST_BLOB_PATH}`, { cache: 'no-store' })
+    if (!res.ok) return []
     return await res.json() as CommunitySkin[]
   } catch { return [] }
 }

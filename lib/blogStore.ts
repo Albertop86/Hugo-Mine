@@ -1,4 +1,4 @@
-import { put, head, list } from '@vercel/blob'
+import { put } from '@vercel/blob'
 
 export interface BlogPostLocale {
   title:       string
