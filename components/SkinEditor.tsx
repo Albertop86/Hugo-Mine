@@ -86,6 +86,7 @@ export default function SkinEditor() {
   const [fillCount,      setFillCount]      = useState(0)
   const [autoUploadDone, setAutoUploadDone] = useState(false)
   const [toast,          setToast]          = useState<string | null>(null)
+  const [uploadFailed,   setUploadFailed]   = useState(false)
   const [dlState,        setDlState]        = useState<'idle'|'done'>('idle')
   const [skinName,       setSkinName]       = useState('')
   const skinNameRef      = useRef('')         // for use inside async/timer closures
@@ -249,9 +250,11 @@ export default function SkinEditor() {
         showToast('¡Skin añadida a la galería de la comunidad! 🎉')
       } else {
         autoUploadedRef.current = false
+        setUploadFailed(true)
       }
     } catch {
       autoUploadedRef.current = false
+      setUploadFailed(true)
     }
   }
 
@@ -399,6 +402,7 @@ export default function SkinEditor() {
     autoUploadedRef.current = false
     uploadedIdRef.current = null
     setAutoUploadDone(false)
+    setUploadFailed(false)
     const img = new Image()
     img.onload = () => {
       const off=offRef.current!; const ctx=off.getContext('2d')!
@@ -428,6 +432,7 @@ export default function SkinEditor() {
     autoUploadedRef.current = false
     uploadedIdRef.current = null
     setAutoUploadDone(false)
+    setUploadFailed(false)
     syncOffscreen(); repaint(); pushHistory(); setSkinUrl(canvasToUrl())
   }
 
@@ -712,9 +717,11 @@ export default function SkinEditor() {
                   <span className="text-xs font-bold opacity-60" style={{ color: 'var(--color-earth)' }}>
                     {autoUploadDone
                       ? '✓ En la galería'
-                      : fillCount === TOTAL_FRONT_PX
-                        ? '⏳ Guardando...'
-                        : `${fillCount} / ${TOTAL_FRONT_PX} píxeles`}
+                      : uploadFailed
+                        ? '⬇ Lista para descargar'
+                        : fillCount === TOTAL_FRONT_PX
+                          ? '⏳ Guardando...'
+                          : `${fillCount} / ${TOTAL_FRONT_PX} píxeles`}
                   </span>
                   <span className="text-xs font-bold" style={{ color: fillCount === TOTAL_FRONT_PX ? '#059669' : 'var(--color-earth)', opacity: fillCount === TOTAL_FRONT_PX ? 1 : 0.5 }}>
                     {Math.round(fillCount / TOTAL_FRONT_PX * 100)}%
@@ -724,7 +731,7 @@ export default function SkinEditor() {
                   <div className="h-full rounded-full transition-all"
                     style={{
                       width: `${fillCount / TOTAL_FRONT_PX * 100}%`,
-                      background: autoUploadDone ? '#059669' : fillCount === TOTAL_FRONT_PX ? '#34d399' : 'var(--color-green-mine)',
+                      background: autoUploadDone ? '#059669' : (uploadFailed || fillCount === TOTAL_FRONT_PX) ? '#34d399' : 'var(--color-green-mine)',
                     }} />
                 </div>
                 {!autoUploadDone && fillCount < TOTAL_FRONT_PX && fillCount > 0 && (

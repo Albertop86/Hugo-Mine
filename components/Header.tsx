@@ -40,7 +40,7 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-6 text-sm font-semibold">
-          <a href="#how-it-works" className="transition-colors hover:text-green-mine"
+          <a href={`/${locale}#how-it-works`} className="transition-colors hover:text-green-mine"
             style={{ color: 'var(--color-earth-soft)' }}>
             {t('navHow')}
           </a>
@@ -94,7 +94,7 @@ export default function Header() {
           </div>
 
           {/* CTA button */}
-          <a href="#converter"
+          <a href={`/${locale}#converter`}
             className="hidden md:inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
             style={{ background: 'var(--color-green-mine)' }}>
             {t('cta')} →
@@ -112,7 +112,7 @@ export default function Header() {
       {menuOpen && (
         <div className="md:hidden px-4 pb-4 flex flex-col gap-3 text-sm font-semibold"
           style={{ borderTop: '1px solid var(--color-cream-dark)' }}>
-          <a href="#how-it-works" onClick={() => setMenuOpen(false)}
+          <a href={`/${locale}#how-it-works`} onClick={() => setMenuOpen(false)}
             className="py-2" style={{ color: 'var(--color-earth-soft)' }}>
             {t('navHow')}
           </a>
@@ -136,7 +136,7 @@ export default function Header() {
             className="py-2 font-bold" style={{ color: 'var(--color-green-mine)' }}>
             📅 {t('navSkinDelDia')}
           </Link>
-          <a href="#converter" onClick={() => setMenuOpen(false)}
+          <a href={`/${locale}#converter`} onClick={() => setMenuOpen(false)}
             className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-white font-bold"
             style={{ background: 'var(--color-green-mine)' }}>
             {t('cta')} →
