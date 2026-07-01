@@ -83,16 +83,26 @@ export default function SkinEditor() {
   const [skinUrl,   setSkinUrl]   = useState<string | null>(null)
   const [showModal,      setShowModal]      = useState(false)
   const [adClicked,      setAdClicked]      = useState(false)
-  const [fillCount,      setFillCount]      = useState(0)
-  const [autoUploadDone, setAutoUploadDone] = useState(false)
-  const [toast,          setToast]          = useState<string | null>(null)
-  const [uploadFailed,   setUploadFailed]   = useState(false)
-  const [dlState,        setDlState]        = useState<'idle'|'done'>('idle')
-  const [skinName,       setSkinName]       = useState('')
-  const skinNameRef      = useRef('')         // for use inside async/timer closures
-  const skinCompleteRef  = useRef(false)
-  const autoUploadedRef  = useRef(false)
-  const uploadedIdRef    = useRef<string | null>(null)
+  const [fillCount, setFillCount] = useState(0)
+  const [toast,     setToast]     = useState<string | null>(null)
+  const [saveState, setSaveState] = useState<'idle'|'local'|'uploading'|'synced'|'failed'>('idle')
+  const [dlState,   setDlState]   = useState<'idle'|'done'>('idle')
+  const [skinName,  setSkinName]  = useState('')
+  const skinNameRef     = useRef('')
+  const skinCompleteRef = useRef(false)
+  const autoUploadedRef = useRef(false)
+  const uploadedIdRef   = useRef<string | null>(null)
+
+  const WIP_KEY = 'skinme_wip'
+  function saveToLocal() {
+    if (!skinCompleteRef.current) return
+    try {
+      localStorage.setItem(WIP_KEY, JSON.stringify({
+        dataUrl: canvasToUrl(), name: skinNameRef.current, uploadedId: uploadedIdRef.current,
+      }))
+    } catch {}
+  }
+  function clearLocalWip() { try { localStorage.removeItem(WIP_KEY) } catch {} }
   const debounceTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
   const toastTimer       = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -236,6 +246,7 @@ export default function SkinEditor() {
   async function autoUploadToGallery() {
     if (autoUploadedRef.current) return
     autoUploadedRef.current = true
+    setSaveState('uploading')
     try {
       const dataUrl = canvasToUrl()
       const blob = await (await fetch(dataUrl)).blob()
@@ -246,21 +257,25 @@ export default function SkinEditor() {
       if (r.ok) {
         const data = await r.json()
         uploadedIdRef.current = data.skin?.id ?? null
-        setAutoUploadDone(true)
+        clearLocalWip()
+        setSaveState('synced')
         showToast('¡Skin añadida a la galería de la comunidad! 🎉')
       } else {
         autoUploadedRef.current = false
-        setUploadFailed(true)
+        saveToLocal()
+        setSaveState('failed')
       }
     } catch {
       autoUploadedRef.current = false
-      setUploadFailed(true)
+      saveToLocal()
+      setSaveState('failed')
     }
   }
 
   async function reUploadToGallery() {
     const id = uploadedIdRef.current
     if (!id || !skinCompleteRef.current) return
+    setSaveState('uploading')
     try {
       const dataUrl = canvasToUrl()
       const blob = await (await fetch(dataUrl)).blob()
@@ -268,13 +283,17 @@ export default function SkinEditor() {
       form.append('id', id)
       form.append('skin', new File([blob], 'skin.png', { type: 'image/png' }))
       form.append('name', skinNameRef.current || 'Anónimo')
-      await fetch('/api/skins', { method: 'PUT', body: form })
-    } catch { /* silent */ }
+      const r = await fetch('/api/skins', { method: 'PUT', body: form })
+      if (r.ok) { clearLocalWip(); setSaveState('synced') }
+      else { setSaveState('local') }
+    } catch { setSaveState('local') }
   }
 
   function scheduleReUpload() {
+    saveToLocal()                                // instant, free
+    setSaveState(s => s === 'synced' ? 'local' : s)
     if (debounceTimer.current) clearTimeout(debounceTimer.current)
-    debounceTimer.current = setTimeout(reUploadToGallery, 2500)
+    debounceTimer.current = setTimeout(reUploadToGallery, 60_000) // 60s
   }
 
   function checkCompletion() {
@@ -401,8 +420,9 @@ export default function SkinEditor() {
     const file = e.target.files?.[0]; if (!file) return
     autoUploadedRef.current = false
     uploadedIdRef.current = null
-    setAutoUploadDone(false)
-    setUploadFailed(false)
+    clearLocalWip()
+    setSaveState('idle')
+    if (debounceTimer.current) { clearTimeout(debounceTimer.current); debounceTimer.current = null }
     const img = new Image()
     img.onload = () => {
       const off=offRef.current!; const ctx=off.getContext('2d')!
@@ -431,8 +451,9 @@ export default function SkinEditor() {
     buf.current.fill(0)
     autoUploadedRef.current = false
     uploadedIdRef.current = null
-    setAutoUploadDone(false)
-    setUploadFailed(false)
+    clearLocalWip()
+    setSaveState('idle')
+    if (debounceTimer.current) { clearTimeout(debounceTimer.current); debounceTimer.current = null }
     syncOffscreen(); repaint(); pushHistory(); setSkinUrl(canvasToUrl())
   }
 
@@ -459,18 +480,44 @@ export default function SkinEditor() {
   useEffect(() => {
     const off = document.createElement('canvas'); off.width=SKIN_W; off.height=SKIN_H; offRef.current=off
     resizeCanvas()
-    const saved = localStorage.getItem('skinme_edit_skin')
-    if (saved) {
-      localStorage.removeItem('skinme_edit_skin')
+
+    // Priority: explicit edit-from-gallery > pending WIP > blank
+    const editSkin = localStorage.getItem('skinme_edit_skin')
+    const wipRaw   = localStorage.getItem('skinme_wip')
+
+    function restoreImage(src: string, onDone?: () => void) {
       const img = new Image()
       img.onload = () => {
         const ctx=off.getContext('2d')!; ctx.clearRect(0,0,SKIN_W,SKIN_H); ctx.drawImage(img,0,0,SKIN_W,SKIN_H)
         const id=ctx.getImageData(0,0,SKIN_W,SKIN_H); buf.current.set(id.data)
         hist.current=[new Uint8ClampedArray(buf.current)]; histPos.current=0
         repaint(); setSkinUrl(off.toDataURL('image/png'))
+        onDone?.()
       }
-      img.src = saved
-    } else { repaint(); setSkinUrl(off.toDataURL('image/png')) }
+      img.src = src
+    }
+
+    if (editSkin) {
+      localStorage.removeItem('skinme_edit_skin')
+      restoreImage(editSkin)
+    } else if (wipRaw) {
+      try {
+        const wip = JSON.parse(wipRaw)
+        uploadedIdRef.current = wip.uploadedId ?? null
+        skinNameRef.current   = wip.name ?? ''
+        setSkinName(wip.name ?? '')
+        restoreImage(wip.dataUrl, () => {
+          // Skin was complete (we only save WIP when complete), schedule upload
+          skinCompleteRef.current  = true
+          autoUploadedRef.current  = !!wip.uploadedId
+          setSaveState('local')
+          if (debounceTimer.current) clearTimeout(debounceTimer.current)
+          debounceTimer.current = setTimeout(reUploadToGallery, 10_000) // 10s after restore
+        })
+      } catch { repaint(); setSkinUrl(off.toDataURL('image/png')) }
+    } else {
+      repaint(); setSkinUrl(off.toDataURL('image/png'))
+    }
   }, [repaint]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Zoom change
@@ -525,7 +572,7 @@ export default function SkinEditor() {
                   style={{ fontFamily: 'var(--font-pixel)', fontSize: '0.85rem', lineHeight: 2, color: 'var(--color-earth)' }}>
                   ✓ ¡Skin descargada!
                 </p>
-                {autoUploadDone && (
+                {saveState === 'synced' && (
                   <a href={`/${locale}/gallery`}
                     className="w-full py-3 rounded-2xl font-bold text-white text-sm text-center transition-all hover:opacity-90"
                     style={{ background: 'var(--color-green-mine)' }}>
@@ -545,9 +592,14 @@ export default function SkinEditor() {
                   ¡Tu skin está lista! 🎉
                 </p>
 
-                {autoUploadDone && (
+                {saveState === 'synced' && (
                   <p className="text-xs text-center font-bold" style={{ color: '#059669' }}>
                     ✨ Ya está en la galería de la comunidad
+                  </p>
+                )}
+                {saveState === 'local' && (
+                  <p className="text-xs text-center font-bold" style={{ color: '#2563eb' }}>
+                    💾 Guardada localmente, subirá pronto
                   </p>
                 )}
 
@@ -714,14 +766,18 @@ export default function SkinEditor() {
               {/* Completion bar */}
               <div className="w-full flex flex-col gap-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold opacity-60" style={{ color: 'var(--color-earth)' }}>
-                    {autoUploadDone
-                      ? '✓ En la galería'
-                      : uploadFailed
-                        ? '⬇ Lista para descargar'
-                        : fillCount === TOTAL_FRONT_PX
-                          ? '⏳ Guardando...'
-                          : `${fillCount} / ${TOTAL_FRONT_PX} píxeles`}
+                  <span className="text-xs font-bold" style={{
+                    color: saveState === 'synced' ? '#059669'
+                         : saveState === 'local'  ? '#2563eb'
+                         : saveState === 'failed' ? '#dc2626'
+                         : 'var(--color-earth)',
+                    opacity: saveState === 'idle' ? 0.6 : 1,
+                  }}>
+                    {saveState === 'synced'   ? '✓ En la galería'
+                   : saveState === 'uploading'? '⏳ Subiendo...'
+                   : saveState === 'local'    ? '💾 Guardado localmente'
+                   : saveState === 'failed'   ? '⚠ Solo en este dispositivo'
+                   : `${fillCount} / ${TOTAL_FRONT_PX} píxeles`}
                   </span>
                   <span className="text-xs font-bold" style={{ color: fillCount === TOTAL_FRONT_PX ? '#059669' : 'var(--color-earth)', opacity: fillCount === TOTAL_FRONT_PX ? 1 : 0.5 }}>
                     {Math.round(fillCount / TOTAL_FRONT_PX * 100)}%
@@ -731,12 +787,20 @@ export default function SkinEditor() {
                   <div className="h-full rounded-full transition-all"
                     style={{
                       width: `${fillCount / TOTAL_FRONT_PX * 100}%`,
-                      background: autoUploadDone ? '#059669' : (uploadFailed || fillCount === TOTAL_FRONT_PX) ? '#34d399' : 'var(--color-green-mine)',
+                      background: saveState === 'synced' ? '#059669'
+                                : saveState === 'local'  ? '#3b82f6'
+                                : saveState === 'uploading' ? '#34d399'
+                                : 'var(--color-green-mine)',
                     }} />
                 </div>
-                {!autoUploadDone && fillCount < TOTAL_FRONT_PX && fillCount > 0 && (
+                {saveState === 'idle' && fillCount > 0 && fillCount < TOTAL_FRONT_PX && (
                   <p className="text-xs opacity-40" style={{ color: 'var(--color-earth)' }}>
                     Rellena todos los píxeles para añadirla a la galería
+                  </p>
+                )}
+                {saveState === 'local' && (
+                  <p className="text-xs" style={{ color: '#2563eb', opacity: 0.7 }}>
+                    Se subirá a la galería cuando termines de editar
                   </p>
                 )}
               </div>
