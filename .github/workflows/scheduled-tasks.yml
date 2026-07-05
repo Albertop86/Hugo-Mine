@@ -1,0 +1,101 @@
+name: Scheduled Tasks
+
+on:
+  schedule:
+    - cron: '0 8 * * *'      # Daily 8am UTC
+    - cron: '0 9 * * 1,4'   # Mon + Thu 9am UTC
+    - cron: '0 10 * * 2,5'  # Tue + Fri 10am UTC
+  workflow_dispatch:          # Allow manual trigger from GitHub UI
+
+jobs:
+  # ── Skin del Día — runs every day ──────────────────────────────────────────
+  character-of-the-day:
+    name: Skin del Día
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 8 * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Trigger character-of-the-day
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X GET \
+            "https://makeskins.com/api/cron/character-of-the-day" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          echo "Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          [ "$HTTP_CODE" = "200" ] || exit 1
+
+  # ── Prefill de contenido — runs every day after skin-del-dia ───────────────
+  prefill-content:
+    name: Pre-rellenar fichas de personajes
+    runs-on: ubuntu-latest
+    needs: character-of-the-day
+    if: always() && (github.event.schedule == '0 8 * * *' || github.event_name == 'workflow_dispatch')
+    steps:
+      - name: Trigger prefill-content
+        timeout-minutes: 8
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 450 -X GET \
+            "https://makeskins.com/api/cron/prefill-content" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          echo "Status: $HTTP_CODE"
+          echo "Response: $BODY"
+
+  # ── Weekly report — runs every Monday ──────────────────────────────────────
+  weekly-report:
+    name: Reporte semanal SEO
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 8 * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Check if Monday
+        id: check-day
+        run: |
+          DAY=$(date +%u)
+          echo "day=$DAY" >> $GITHUB_OUTPUT
+          echo "Today is day $DAY (1=Mon)"
+
+      - name: Send weekly report (Monday only)
+        if: steps.check-day.outputs.day == '1' || github.event_name == 'workflow_dispatch'
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X GET \
+            "https://makeskins.com/api/cron/weekly-report" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          echo "Status: $HTTP_CODE"
+          echo "Response: $BODY"
+
+  # ── Generación de contenido — Mon + Thu ────────────────────────────────────
+  generate-content:
+    name: Generar artículo de blog con IA
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 9 * * 1,4' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Trigger generate-content
+        timeout-minutes: 3
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 150 -X GET \
+            "https://makeskins.com/api/cron/generate-content" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          echo "Status: $HTTP_CODE"
+          echo "Response: $BODY"
+
+  # ── Reddit posts — Tue + Fri ───────────────────────────────────────────────
+  reddit-post:
+    name: Post en Reddit
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 10 * * 2,5' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Trigger reddit-post
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X GET \
+            "https://makeskins.com/api/cron/reddit-post" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          echo "Status: $HTTP_CODE"
+          echo "Response: $BODY"
