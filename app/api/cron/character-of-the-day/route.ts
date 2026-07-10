@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { storagePut, storageGetJson } from '@/lib/storage'
 import { getCharacterOfTheDay, type Character } from '@/lib/characterOfTheDay'
 import { makeCharacterSkin, getPalette, getExtras } from '@/lib/characterSkinGenerator'
+import { postPin } from '@/lib/pinterest'
 
 const LOCALES = ['es', 'en', 'fr', 'pt'] as const
 const LOCALE_INST: Record<string, string> = {
@@ -142,12 +143,30 @@ export async function GET(req: Request) {
       revalidatePath(`/${locale}/gallery`, 'page')
     }
 
+    // Publicar en Pinterest si tenemos skin y contenido en español
+    let pinterestPinId: string | null = null
+    const esContent = content.es as { title?: string; description?: string } | undefined
+    if (skinUrl && esContent?.title && process.env.PINTEREST_ACCESS_TOKEN) {
+      try {
+        pinterestPinId = await postPin({
+          title:       esContent.title,
+          description: `${esContent.description ?? ''} Descarga gratis en makeskins.com`,
+          imageUrl:    skinUrl.startsWith('http') ? skinUrl : `https://makeskins.com${skinUrl}`,
+          link:        `https://makeskins.com/es/skins/${character.slug}`,
+        })
+        console.log(`[character-of-day] Pinterest pin created: ${pinterestPinId}`)
+      } catch (pinErr) {
+        console.error('[character-of-day] Pinterest error:', pinErr)
+      }
+    }
+
     return NextResponse.json({
-      ok:        true,
-      date:      dateStr,
-      character: character.slug,
+      ok:             true,
+      date:           dateStr,
+      character:      character.slug,
       skinUrl,
-      names:     { es: character.nameEs, en: character.nameEn },
+      names:          { es: character.nameEs, en: character.nameEn },
+      pinterestPinId,
     })
   } catch (err) {
     console.error('[character-of-day]', err)
