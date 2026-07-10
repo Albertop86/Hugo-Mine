@@ -137,20 +137,24 @@ export async function GET(req: Request) {
       charSkins.sort((a, b) => b.date.localeCompare(a.date))
     }
 
-    await Promise.all([
-      put(`characters/${dateStr}.json`, JSON.stringify(content), {
-        access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-      }),
-      put('characters/today.json', JSON.stringify(content), {
-        access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-      }),
-      put('characters/index.json', JSON.stringify(indexEntries), {
-        access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-      }),
-      ...(skinUrl ? [put('skins/characters/index.json', JSON.stringify(charSkins), {
-        access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-      })] : []),
-    ])
+    try {
+      await Promise.all([
+        put(`characters/${dateStr}.json`, JSON.stringify(content), {
+          access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
+        }),
+        put('characters/today.json', JSON.stringify(content), {
+          access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
+        }),
+        put('characters/index.json', JSON.stringify(indexEntries), {
+          access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
+        }),
+        ...(skinUrl ? [put('skins/characters/index.json', JSON.stringify(charSkins), {
+          access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
+        })] : []),
+      ])
+    } catch (blobErr) {
+      console.error('[character-of-day] Blob write failed (store may be suspended):', blobErr)
+    }
 
     for (const locale of ['es', 'en', 'fr', 'pt']) {
       revalidatePath(`/${locale}/skin-del-dia`, 'page')

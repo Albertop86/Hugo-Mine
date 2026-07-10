@@ -28,33 +28,44 @@ export async function GET(req: Request) {
   }
 
   try {
-    const token = await getGSCToken()
+    let rows7: Awaited<ReturnType<typeof querySearchConsole>> = []
+    let rows28: typeof rows7 = []
+    let rowsPrev28: typeof rows7 = []
+    let rowsPages: typeof rows7 = []
+    let rowsCountries: typeof rows7 = []
+    let gscError: string | null = null
 
-    const [rows7, rows28, rowsPrev28, rowsPages, rowsCountries] = await Promise.all([
-      querySearchConsole(token, SITE, {
-        startDate: dateStr(7), endDate: dateStr(0),
-        dimensions: ['query'], rowLimit: 10,
-        orderBy: [{ fieldName: 'impressions', sortOrder: 'DESCENDING' }],
-      }),
-      querySearchConsole(token, SITE, {
-        startDate: dateStr(28), endDate: dateStr(0),
-        dimensions: ['query'], rowLimit: 20,
-        orderBy: [{ fieldName: 'impressions', sortOrder: 'DESCENDING' }],
-      }),
-      querySearchConsole(token, SITE, {
-        startDate: dateStr(56), endDate: dateStr(28),
-        dimensions: ['query'], rowLimit: 20,
-        orderBy: [{ fieldName: 'impressions', sortOrder: 'DESCENDING' }],
-      }),
-      querySearchConsole(token, SITE, {
-        startDate: dateStr(7), endDate: dateStr(0),
-        dimensions: ['page'], rowLimit: 10,
-      }),
-      querySearchConsole(token, SITE, {
-        startDate: dateStr(7), endDate: dateStr(0),
-        dimensions: ['country'], rowLimit: 5,
-      }),
-    ])
+    try {
+      const token = await getGSCToken()
+      ;[rows7, rows28, rowsPrev28, rowsPages, rowsCountries] = await Promise.all([
+        querySearchConsole(token, SITE, {
+          startDate: dateStr(7), endDate: dateStr(0),
+          dimensions: ['query'], rowLimit: 10,
+          orderBy: [{ fieldName: 'impressions', sortOrder: 'DESCENDING' }],
+        }),
+        querySearchConsole(token, SITE, {
+          startDate: dateStr(28), endDate: dateStr(0),
+          dimensions: ['query'], rowLimit: 20,
+          orderBy: [{ fieldName: 'impressions', sortOrder: 'DESCENDING' }],
+        }),
+        querySearchConsole(token, SITE, {
+          startDate: dateStr(56), endDate: dateStr(28),
+          dimensions: ['query'], rowLimit: 20,
+          orderBy: [{ fieldName: 'impressions', sortOrder: 'DESCENDING' }],
+        }),
+        querySearchConsole(token, SITE, {
+          startDate: dateStr(7), endDate: dateStr(0),
+          dimensions: ['page'], rowLimit: 10,
+        }),
+        querySearchConsole(token, SITE, {
+          startDate: dateStr(7), endDate: dateStr(0),
+          dimensions: ['country'], rowLimit: 5,
+        }),
+      ])
+    } catch (err) {
+      gscError = String(err)
+      console.error('[weekly-report] GSC unavailable:', gscError)
+    }
 
     // Totales
     const total7  = rows7.reduce((a, r)  => ({ clicks: a.clicks + r.clicks, impressions: a.impressions + r.impressions }), { clicks: 0, impressions: 0 })
@@ -83,6 +94,11 @@ export async function GET(req: Request) {
     <h1 style="color:white;margin:0;font-size:20px">MakeSkins</h1>
     <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:13px">Reporte semanal — ${weekOf}</p>
   </div>
+
+  ${gscError ? `
+  <div style="background:#fef2f2;border-radius:12px;padding:16px;margin-bottom:20px;border:1px solid #fca5a5">
+    <p style="margin:0;font-size:13px;color:#dc2626">⚠️ <strong>Google Search Console no disponible</strong> — el token OAuth ha expirado. Renuévalo en la consola de Google Cloud para recibir datos la próxima semana.</p>
+  </div>` : ''}
 
   <!-- KPIs -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
@@ -177,7 +193,9 @@ export async function GET(req: Request) {
       body: JSON.stringify({
         from:    'MakeSkins Report <report@makeskins.com>',
         to:      [REPORT_TO],
-        subject: `📊 MakeSkins — Semana del ${weekOf} · ${formatNum(total7.clicks)} clics`,
+        subject: gscError
+          ? `📊 MakeSkins — Semana del ${weekOf} · (GSC no disponible)`
+          : `📊 MakeSkins — Semana del ${weekOf} · ${formatNum(total7.clicks)} clics`,
         html,
       }),
     })
@@ -187,6 +205,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       ok:          true,
       emailId:     emailData.id,
+      gscOk:       !gscError,
       stats:       { clicks7: total7.clicks, impressions7: total7.impressions },
       opportunities: opps.length,
     })
