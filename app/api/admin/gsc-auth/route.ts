@@ -5,7 +5,7 @@ const SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly'
 
 export async function GET(req: Request) {
   const secret = new URL(req.url).searchParams.get('secret')
-  if (secret !== process.env.CRON_SECRET) {
+  if (!process.env.GSC_ADMIN_NONCE || secret !== process.env.GSC_ADMIN_NONCE) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
         code,
         client_id:     process.env.GSC_CLIENT_ID!,
         client_secret: process.env.GSC_CLIENT_SECRET!,
-        redirect_uri:  `${REDIRECT_URI}?secret=${process.env.CRON_SECRET}`,
+        redirect_uri:  `${REDIRECT_URI}?secret=${process.env.GSC_ADMIN_NONCE}`,
         grant_type:    'authorization_code',
       }),
     })
@@ -51,7 +51,7 @@ y cuando pregunte el valor, pega esto:</p>
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     new URLSearchParams({
       client_id:     process.env.GSC_CLIENT_ID!,
-      redirect_uri:  `${REDIRECT_URI}?secret=${process.env.CRON_SECRET}`,
+      redirect_uri:  `${REDIRECT_URI}?secret=${process.env.GSC_ADMIN_NONCE}`,
       response_type: 'code',
       scope:         SCOPE,
       access_type:   'offline',
