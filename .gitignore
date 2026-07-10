@@ -46,7 +46,6 @@ next-env.d.ts
 /test-photos/
 /test-output/
 /test-skin.mjs
-/proxy.ts
 /scripts/
 /iniciar-servidor.bat
 /public/comparisons.html
