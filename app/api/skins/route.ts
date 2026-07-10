@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
+import { storagePut, storageGetJson } from '@/lib/storage'
 
 export interface CommunitySkin {
   id:        string
@@ -9,8 +10,9 @@ export interface CommunitySkin {
   createdAt: number
 }
 
-const MAX_SKINS = 50
-const USE_BLOB  = !!process.env.BLOB_STORE_ID
+const MAX_SKINS   = 50
+const USE_GITHUB  = !!process.env.GITHUB_STORAGE_TOKEN
+const LIST_PATH   = 'skinme/community-list.json'
 
 // ── Filesystem backend (local dev) ───────────────────────────────────
 const DATA_FILE = join(process.cwd(), 'data', 'community-skins.json')
@@ -28,43 +30,22 @@ function writeSkinsFs(skins: CommunitySkin[]) {
   writeFileSync(DATA_FILE, JSON.stringify(skins, null, 2), 'utf8')
 }
 
-// ── Vercel Blob backend (production) ─────────────────────────────────
-const LIST_BLOB_PATH = 'skinme/community-list.json'
-const BLOB_CDN_BASE  = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
-
-async function readSkinsBlob(): Promise<CommunitySkin[]> {
-  try {
-    // Direct HTTP GET — does NOT consume Advanced Request quota (unlike list())
-    const res = await fetch(`${BLOB_CDN_BASE}/${LIST_BLOB_PATH}`, { cache: 'no-store' })
-    if (!res.ok) return []
-    return await res.json() as CommunitySkin[]
-  } catch { return [] }
+// ── GitHub storage backend (production) ──────────────────────────────
+async function readSkinsGitHub(): Promise<CommunitySkin[]> {
+  return storageGetJson<CommunitySkin[]>(LIST_PATH, [])
 }
 
-async function writeSkinsBlob(skins: CommunitySkin[]) {
-  const { put } = await import('@vercel/blob')
-  await put(LIST_BLOB_PATH, JSON.stringify(skins), {
-    access: 'public',
-    addRandomSuffix: false,
-    contentType: 'application/json',
-    allowOverwrite: true,
-  })
+async function writeSkinsGitHub(skins: CommunitySkin[]) {
+  await storagePut(LIST_PATH, JSON.stringify(skins))
 }
 
-async function uploadImageBlob(id: string, buffer: Buffer): Promise<string> {
-  const { put } = await import('@vercel/blob')
-  const { url } = await put(`skinme/community/${id}.png`, buffer, {
-    access: 'public',
-    addRandomSuffix: false,
-    contentType: 'image/png',
-    allowOverwrite: true,
-  })
-  return url
+async function uploadImageGitHub(id: string, buffer: Buffer): Promise<string> {
+  return storagePut(`skinme/community/${id}.png`, buffer)
 }
 
 // ── GET /api/skins ────────────────────────────────────────────────────
 export async function GET() {
-  const skins = USE_BLOB ? await readSkinsBlob() : readSkinsFs()
+  const skins = USE_GITHUB ? await readSkinsGitHub() : readSkinsFs()
   return NextResponse.json({ skins })
 }
 
@@ -84,8 +65,8 @@ export async function POST(req: NextRequest) {
 
     let url: string
 
-    if (USE_BLOB) {
-      url = await uploadImageBlob(id, buffer)
+    if (USE_GITHUB) {
+      url = await uploadImageGitHub(id, buffer)
     } else {
       mkdirSync(SKINS_DIR, { recursive: true })
       writeFileSync(join(SKINS_DIR, `${id}.png`), buffer)
@@ -94,8 +75,8 @@ export async function POST(req: NextRequest) {
 
     const skin: CommunitySkin = { id, url, name, createdAt: Date.now() }
 
-    const skins = [skin, ...(USE_BLOB ? await readSkinsBlob() : readSkinsFs())].slice(0, MAX_SKINS)
-    USE_BLOB ? await writeSkinsBlob(skins) : writeSkinsFs(skins)
+    const skins = [skin, ...(USE_GITHUB ? await readSkinsGitHub() : readSkinsFs())].slice(0, MAX_SKINS)
+    USE_GITHUB ? await writeSkinsGitHub(skins) : writeSkinsFs(skins)
 
     return NextResponse.json({ ok: true, skin })
   } catch (err) {
@@ -118,14 +99,11 @@ export async function PUT(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer())
 
-    if (USE_BLOB) {
-      const { put } = await import('@vercel/blob')
-      await put(`skinme/community/${id}.png`, buffer, {
-        access: 'public', addRandomSuffix: false, contentType: 'image/png', allowOverwrite: true,
-      })
-      const skins = await readSkinsBlob()
+    if (USE_GITHUB) {
+      await storagePut(`skinme/community/${id}.png`, buffer)
+      const skins = await readSkinsGitHub()
       const idx = skins.findIndex(s => s.id === id)
-      if (idx >= 0) { skins[idx].name = name; await writeSkinsBlob(skins) }
+      if (idx >= 0) { skins[idx].name = name; await writeSkinsGitHub(skins) }
     } else {
       mkdirSync(SKINS_DIR, { recursive: true })
       writeFileSync(join(SKINS_DIR, `${id}.png`), buffer)

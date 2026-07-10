@@ -8,7 +8,7 @@ import { PREMADE_SKINS, CATEGORY_LABELS, type SkinCategory } from '@/lib/premade
 import { CHARACTERS } from '@/lib/characterOfTheDay'
 import type { CommunitySkin } from '@/app/api/skins/route'
 
-const BLOB_BASE = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
+const STORAGE_BASE = 'https://raw.githubusercontent.com/Albertop86/Hugo-Mine/data'
 
 const CHAR_CATS = ['Marvel', 'DC', 'Anime', 'Gaming', 'Películas', 'Series', 'YouTubers', 'Memes', 'Minecraft'] as const
 type CharCat = typeof CHAR_CATS[number]
@@ -28,7 +28,7 @@ const CAT_LABELS: Record<CharCat, Record<string, string>> = {
 function charSkinUrl(char: typeof CHARACTERS[0]): string {
   return char.skinFile
     ? `/skins/premade/${char.skinFile}.png`
-    : `${BLOB_BASE}/skins/characters/${char.slug}.png`
+    : `${STORAGE_BASE}/skins/characters/${char.slug}.png`
 }
 
 // ── Premade/community skin card (download only) ────────────────────────────────

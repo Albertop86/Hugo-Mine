@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob'
+import { storagePut, storageUrl, storageGetJson } from './storage'
 
 export interface BlogPostLocale {
   title:       string
@@ -19,37 +19,25 @@ export interface BlogPost {
   locales:    Record<string, BlogPostLocale>
 }
 
-const BASE_URL = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
-
 function blobKey(slug: string) {
   return `blog/posts/${slug}.json`
 }
 
 export async function savePost(post: BlogPost): Promise<void> {
-  await put(blobKey(post.slug), JSON.stringify(post), {
-    access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-  })
+  await storagePut(blobKey(post.slug), JSON.stringify(post))
   const existing = await listSlugs()
   if (!existing.includes(post.slug)) {
-    await put('blog/index.json', JSON.stringify([...existing, post.slug]), {
-      access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-    })
+    await storagePut('blog/index.json', JSON.stringify([...existing, post.slug]))
   }
 }
 
 export async function listSlugs(): Promise<string[]> {
-  try {
-    const res = await fetch(`${BASE_URL}/blog/index.json`, { next: { revalidate: 3600 } })
-    if (!res.ok) return []
-    return res.json()
-  } catch {
-    return []
-  }
+  return storageGetJson<string[]>('blog/index.json', [])
 }
 
 export async function getPost(slug: string): Promise<BlogPost | null> {
   try {
-    const res = await fetch(`${BASE_URL}/${blobKey(slug)}`, { next: { revalidate: 3600 } })
+    const res = await fetch(storageUrl(blobKey(slug)), { next: { revalidate: 3600 } })
     if (!res.ok) return null
     return res.json()
   } catch {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { put } from '@vercel/blob'
+import { storagePut, storageGetJson, storageExists } from '@/lib/storage'
 import { CHARACTERS, type Character } from '@/lib/characterOfTheDay'
 
 export const maxDuration = 300
@@ -11,7 +11,6 @@ const LOCALE_INST: Record<string, string> = {
   fr: 'Français, ton accessible et enthousiaste.',
   pt: 'Português de Portugal, tom acessível e entusiasta.',
 }
-const BLOB_BASE = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
 
 async function generateContent(character: Character, locale: string) {
   const name = locale === 'es' ? character.nameEs : character.nameEn
@@ -63,15 +62,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'GEMINI_API_KEY not set' }, { status: 500 })
   }
 
-  // Only process characters not yet in the featured index
-  let featuredSlugs = new Set<string>()
-  try {
-    const r = await fetch(`${BLOB_BASE}/characters/index.json`, { cache: 'no-store' })
-    if (r.ok) {
-      const idx: { slug: string }[] = await r.json()
-      featuredSlugs = new Set(idx.map(e => e.slug))
-    }
-  } catch {}
+  const featuredIdx  = await storageGetJson<{ slug: string }[]>('characters/index.json', [])
+  const featuredSlugs = new Set(featuredIdx.map(e => e.slug))
 
   const forceAll = reqUrl.searchParams.get('all') === '1'
   const limit    = parseInt(reqUrl.searchParams.get('limit') ?? '12', 10)
@@ -82,12 +74,9 @@ export async function GET(req: Request) {
 
   for (const char of targets) {
     if (processed >= limit) break
-    // Skip if standalone content already exists (unless forceAll)
-    if (!forceAll) {
-      try {
-        const probe = await fetch(`${BLOB_BASE}/characters/standalone/${char.slug}.json`, { method: 'HEAD', cache: 'no-store' })
-        if (probe.ok) { results.push({ slug: char.slug, ok: true }); continue }
-      } catch {}
+    if (!forceAll && await storageExists(`characters/standalone/${char.slug}.json`)) {
+      results.push({ slug: char.slug, ok: true })
+      continue
     }
     processed++
 
@@ -110,14 +99,11 @@ export async function GET(req: Request) {
         console.error(`[prefill] ${char.slug}/${locale}:`, e)
       }
     }
-    // Pause between characters to respect Gemini rate limits
     await new Promise(r => setTimeout(r, 3000))
 
     if (localeOk > 0) {
       try {
-        await put(`characters/standalone/${char.slug}.json`, JSON.stringify(content), {
-          access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-        })
+        await storagePut(`characters/standalone/${char.slug}.json`, JSON.stringify(content))
         results.push({ slug: char.slug, ok: true })
       } catch (e) {
         results.push({ slug: char.slug, ok: false, error: firstError || String(e) })

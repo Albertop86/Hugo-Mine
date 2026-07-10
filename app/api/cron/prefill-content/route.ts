@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { put } from '@vercel/blob'
+import { storagePut, storageGetJson, storageExists } from '@/lib/storage'
 import { CHARACTERS, type Character } from '@/lib/characterOfTheDay'
 
 export const maxDuration = 300
@@ -11,7 +11,6 @@ const LOCALE_INST: Record<string, string> = {
   fr: 'Français, ton accessible et enthousiaste.',
   pt: 'Português de Portugal, tom acessível e entusiasta.',
 }
-const BLOB_BASE = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
 const BATCH = 4
 
 async function generateContent(character: Character, locale: string) {
@@ -59,14 +58,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ skipped: true, reason: 'GEMINI_API_KEY not set' })
   }
 
-  let featuredSlugs = new Set<string>()
-  try {
-    const r = await fetch(`${BLOB_BASE}/characters/index.json`, { cache: 'no-store' })
-    if (r.ok) {
-      const idx: { slug: string }[] = await r.json()
-      featuredSlugs = new Set(idx.map(e => e.slug))
-    }
-  } catch {}
+  const featuredIdx = await storageGetJson<{ slug: string }[]>('characters/index.json', [])
+  const featuredSlugs = new Set(featuredIdx.map(e => e.slug))
 
   const targets = CHARACTERS.filter(c => !featuredSlugs.has(c.slug))
   const results: { slug: string; ok: boolean }[] = []
@@ -75,11 +68,7 @@ export async function GET(req: Request) {
   for (const char of targets) {
     if (generated >= BATCH) break
 
-    // Skip if already has standalone content
-    try {
-      const probe = await fetch(`${BLOB_BASE}/characters/standalone/${char.slug}.json`, { method: 'HEAD', cache: 'no-store' })
-      if (probe.ok) continue
-    } catch {}
+    if (await storageExists(`characters/standalone/${char.slug}.json`)) continue
 
     generated++
     const content: Record<string, unknown> = {
@@ -99,9 +88,7 @@ export async function GET(req: Request) {
 
     if (localeOk > 0) {
       try {
-        await put(`characters/standalone/${char.slug}.json`, JSON.stringify(content), {
-          access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-        })
+        await storagePut(`characters/standalone/${char.slug}.json`, JSON.stringify(content))
         results.push({ slug: char.slug, ok: true })
       } catch { results.push({ slug: char.slug, ok: false }) }
     } else {

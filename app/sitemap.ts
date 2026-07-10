@@ -6,11 +6,11 @@ import { getAllCharacterSlugs } from '@/lib/characterOfTheDay'
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://makeskins.com'
 const LOCALES  = ['es', 'en', 'fr', 'pt'] as const
 
-const BLOB_BASE = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
+const STORAGE_BASE = 'https://raw.githubusercontent.com/Albertop86/Hugo-Mine/data'
 
 async function getFeaturedDates(): Promise<{ slug: string; date: string }[]> {
   try {
-    const res = await fetch(`${BLOB_BASE}/characters/index.json`, { next: { revalidate: 3600 } })
+    const res = await fetch(`${STORAGE_BASE}/characters/index.json`, { next: { revalidate: 3600 } })
     if (!res.ok) return []
     return res.json()
   } catch { return [] }
@@ -18,7 +18,7 @@ async function getFeaturedDates(): Promise<{ slug: string; date: string }[]> {
 
 async function getDynamicBlogSlugs(): Promise<{ slug: string; date: string }[]> {
   try {
-    const res = await fetch(`${BLOB_BASE}/blog/index.json`, { next: { revalidate: 3600 } })
+    const res = await fetch(`${STORAGE_BASE}/blog/index.json`, { next: { revalidate: 3600 } })
     if (!res.ok) return []
     return res.json()
   } catch { return [] }

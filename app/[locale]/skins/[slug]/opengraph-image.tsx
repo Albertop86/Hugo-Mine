@@ -6,7 +6,7 @@ export const alt         = 'Minecraft Skin'
 export const size        = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-const BLOB_BASE = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
+const STORAGE_BASE = 'https://raw.githubusercontent.com/Albertop86/Hugo-Mine/data'
 
 const CAT_COLOR: Record<string, string> = {
   Marvel:    '#e3342f', DC:        '#2563eb', Anime:     '#7c3aed',
@@ -32,7 +32,7 @@ export default async function Image({ params }: Props) {
   const catColor  = CAT_COLOR[char.category] ?? '#16a34a'
   const skinUrl   = char.skinFile
     ? `https://makeskins.com/skins/premade/${char.skinFile}.png`
-    : `${BLOB_BASE}/skins/characters/${char.slug}.png`
+    : `${STORAGE_BASE}/skins/characters/${char.slug}.png`
 
   const name     = locale === 'es' ? char.nameEs : char.nameEn
   const subtitle = locale === 'fr' ? 'Skin pour Minecraft — Gratuit'

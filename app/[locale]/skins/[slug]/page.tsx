@@ -12,7 +12,7 @@ import AmazonBox from '@/components/AmazonBox'
 
 export const revalidate = 86400
 
-const BLOB_BASE = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
+const STORAGE_BASE = 'https://raw.githubusercontent.com/Albertop86/Hugo-Mine/data'
 
 type Props = { params: Promise<{ locale: string; slug: string }> }
 
@@ -28,19 +28,19 @@ type CharacterDayData = {
 
 async function getCharacterData(slug: string): Promise<CharacterDayData | null> {
   try {
-    const idxRes = await fetch(`${BLOB_BASE}/characters/index.json`, { next: { revalidate: 3600 } })
+    const idxRes = await fetch(`${STORAGE_BASE}/characters/index.json`, { next: { revalidate: 3600 } })
     if (idxRes.ok) {
       const index: { date: string; slug: string }[] = await idxRes.json()
       const entry = index.find(e => e.slug === slug)
       if (entry) {
-        const res = await fetch(`${BLOB_BASE}/characters/${entry.date}.json`, { next: { revalidate: 86400 } })
+        const res = await fetch(`${STORAGE_BASE}/characters/${entry.date}.json`, { next: { revalidate: 86400 } })
         if (res.ok) return res.json()
       }
     }
   } catch {}
   // Fallback: standalone pre-generated content (not yet featured as skin del día)
   try {
-    const res = await fetch(`${BLOB_BASE}/characters/standalone/${slug}.json`, { next: { revalidate: 86400 } })
+    const res = await fetch(`${STORAGE_BASE}/characters/standalone/${slug}.json`, { next: { revalidate: 86400 } })
     if (res.ok) return res.json()
   } catch {}
   return null

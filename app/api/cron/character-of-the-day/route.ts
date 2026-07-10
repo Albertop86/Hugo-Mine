@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { put } from '@vercel/blob'
+import { storagePut, storageGetJson } from '@/lib/storage'
 import { getCharacterOfTheDay, type Character } from '@/lib/characterOfTheDay'
 import { makeCharacterSkin, getPalette, getExtras } from '@/lib/characterSkinGenerator'
 
@@ -11,8 +11,6 @@ const LOCALE_INST: Record<string, string> = {
   fr: 'Français, ton accessible et enthousiaste.',
   pt: 'Português de Portugal, tom acessível e entusiasta.',
 }
-
-const BLOB_BASE = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
 
 async function generateCharacterContent(character: Character, locale: string) {
   const name = locale === 'es' ? character.nameEs : character.nameEn
@@ -52,25 +50,22 @@ Responde SOLO con JSON válido sin markdown:
 }
 
 interface CharSkinEntry {
-  slug:    string
-  nameEs:  string
-  nameEn:  string
-  emoji:   string
+  slug:     string
+  nameEs:   string
+  nameEn:   string
+  emoji:    string
   category: string
-  date:    string
-  skinUrl: string
+  date:     string
+  skinUrl:  string
 }
 
 async function generateAndStoreSkin(character: Character): Promise<string> {
   if (character.skinFile) {
     return `/skins/premade/${character.skinFile}.png`
   }
-  const palette    = getPalette(character.slug, character.category)
-  const pngBuffer  = makeCharacterSkin(palette, getExtras(character.slug))
-  const blobResult = await put(`skins/characters/${character.slug}.png`, pngBuffer, {
-    access: 'public', contentType: 'image/png', addRandomSuffix: false, allowOverwrite: true,
-  })
-  return blobResult.url
+  const palette   = getPalette(character.slug, character.category)
+  const pngBuffer = makeCharacterSkin(palette, getExtras(character.slug))
+  return storagePut(`skins/characters/${character.slug}.png`, pngBuffer)
 }
 
 export async function GET(req: Request) {
@@ -87,7 +82,6 @@ export async function GET(req: Request) {
     const dateStr   = today.toISOString().slice(0, 10)
     const character = getCharacterOfTheDay(today)
 
-    // Generate (or locate) the skin PNG for this character
     let skinUrl = ''
     try {
       skinUrl = await generateAndStoreSkin(character)
@@ -100,31 +94,25 @@ export async function GET(req: Request) {
     for (const locale of LOCALES) {
       try {
         content[locale] = await generateCharacterContent(character, locale)
-        await new Promise(r => setTimeout(r, 2000)) // rate limit
+        await new Promise(r => setTimeout(r, 2000))
       } catch (e) {
         console.error(`[character-of-day] Error ${locale}:`, e)
       }
     }
 
-    // Mantener índice histórico de personajes del día
-    let indexEntries: { date: string; slug: string; nameEn: string; nameEs: string; emoji: string; category: string }[] = []
-    try {
-      const idxRes = await fetch(`${BLOB_BASE}/characters/index.json`, { cache: 'no-store' })
-      if (idxRes.ok) indexEntries = await idxRes.json()
-    } catch {}
+    type IndexEntry = { date: string; slug: string; nameEn: string; nameEs: string; emoji: string; category: string }
+    const indexEntries = await storageGetJson<IndexEntry[]>('characters/index.json', [])
 
-    const todayEntry = { date: dateStr, slug: character.slug, nameEn: character.nameEn, nameEs: character.nameEs, emoji: character.emoji, category: character.category }
+    const todayEntry: IndexEntry = {
+      date: dateStr, slug: character.slug, nameEn: character.nameEn,
+      nameEs: character.nameEs, emoji: character.emoji, category: character.category,
+    }
     const existingIdx = indexEntries.findIndex(e => e.date === dateStr)
     if (existingIdx >= 0) indexEntries[existingIdx] = todayEntry
     else indexEntries.push(todayEntry)
     indexEntries.sort((a, b) => b.date.localeCompare(a.date))
 
-    // Mantener índice de skins de personajes para la galería
-    let charSkins: CharSkinEntry[] = []
-    try {
-      const r = await fetch(`${BLOB_BASE}/skins/characters/index.json`, { cache: 'no-store' })
-      if (r.ok) charSkins = await r.json()
-    } catch {}
+    const charSkins = await storageGetJson<CharSkinEntry[]>('skins/characters/index.json', [])
 
     if (skinUrl) {
       const skinEntry: CharSkinEntry = {
@@ -139,21 +127,13 @@ export async function GET(req: Request) {
 
     try {
       await Promise.all([
-        put(`characters/${dateStr}.json`, JSON.stringify(content), {
-          access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-        }),
-        put('characters/today.json', JSON.stringify(content), {
-          access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-        }),
-        put('characters/index.json', JSON.stringify(indexEntries), {
-          access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-        }),
-        ...(skinUrl ? [put('skins/characters/index.json', JSON.stringify(charSkins), {
-          access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true,
-        })] : []),
+        storagePut(`characters/${dateStr}.json`, JSON.stringify(content)),
+        storagePut('characters/today.json', JSON.stringify(content)),
+        storagePut('characters/index.json', JSON.stringify(indexEntries)),
+        ...(skinUrl ? [storagePut('skins/characters/index.json', JSON.stringify(charSkins))] : []),
       ])
-    } catch (blobErr) {
-      console.error('[character-of-day] Blob write failed (store may be suspended):', blobErr)
+    } catch (storageErr) {
+      console.error('[character-of-day] Storage write failed:', storageErr)
     }
 
     for (const locale of ['es', 'en', 'fr', 'pt']) {

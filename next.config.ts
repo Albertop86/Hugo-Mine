@@ -20,8 +20,7 @@ const nextConfig: NextConfig = {
   ],
   images: {
     remotePatterns: [
-      // Allow Vercel Blob images (community skins in production)
-      { protocol: 'https', hostname: '*.public.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: 'raw.githubusercontent.com' },
     ],
   },
 }

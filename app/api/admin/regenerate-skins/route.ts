@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { put } from '@vercel/blob'
+import { storagePut } from '@/lib/storage'
 import { CHARACTERS } from '@/lib/characterOfTheDay'
 import { buildCharacterSkin } from '@/lib/characterSkinGenerator'
 
@@ -10,16 +10,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Only regenerate characters that use Blob (no premade skinFile)
   const targets = CHARACTERS.filter(c => !c.skinFile)
   const results: { slug: string; ok: boolean; error?: string }[] = []
 
   for (const char of targets) {
     try {
       const buf = buildCharacterSkin(char.slug, char.category)
-      await put(`skins/v2/characters/${char.slug}.png`, buf, {
-        access: 'public', contentType: 'image/png', addRandomSuffix: false, allowOverwrite: true,
-      })
+      await storagePut(`skins/v2/characters/${char.slug}.png`, buf)
       results.push({ slug: char.slug, ok: true })
     } catch (e) {
       results.push({ slug: char.slug, ok: false, error: String(e) })

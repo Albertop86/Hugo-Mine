@@ -1,35 +1,21 @@
 import { type Character } from './characterOfTheDay'
+import { storagePut, storageUrl, storageExists } from './storage'
 
-const BLOB_BASE = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
-
-// Bump this when skin painters change significantly — forces all cached skins to regenerate
 const SKIN_VERSION = 'v2'
 
-// Returns a URL for the character's skin, generating and storing it in Blob if needed.
-// Safe to call from server components and API routes.
+// Returns a URL for the character's skin, generating and storing it if needed.
 export async function getSkinUrl(char: Character): Promise<string | null> {
   if (char.skinFile) return `/skins/premade/${char.skinFile}.png`
 
-  const blobPath = `skins/${SKIN_VERSION}/characters/${char.slug}.png`
-  const cdnUrl   = `${BLOB_BASE}/${blobPath}`
+  const path   = `skins/${SKIN_VERSION}/characters/${char.slug}.png`
+  const cdnUrl = storageUrl(path)
 
-  // Fast path: already in Blob CDN
-  try {
-    const probe = await fetch(cdnUrl, { method: 'HEAD', cache: 'no-store' })
-    if (probe.ok) return cdnUrl
-  } catch {}
+  if (await storageExists(path)) return cdnUrl
 
-  // Generate and store — pure Node.js, no browser APIs
   try {
-    const [{ buildCharacterSkin }, { put }] = await Promise.all([
-      import('./characterSkinGenerator'),
-      import('@vercel/blob'),
-    ])
+    const { buildCharacterSkin } = await import('./characterSkinGenerator')
     const buf = buildCharacterSkin(char.slug, char.category)
-    const { url } = await put(blobPath, buf, {
-      access: 'public', contentType: 'image/png', addRandomSuffix: false, allowOverwrite: true,
-    })
-    return url
+    return await storagePut(path, buf)
   } catch (e) {
     console.error(`[getSkinUrl] ${char.slug}:`, e)
     return null

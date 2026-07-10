@@ -8,11 +8,11 @@ import { getSkinUrl } from '@/lib/getSkinUrl'
 
 export const revalidate = 3600
 
-const BLOB_BASE = 'https://qpjyakz4casdsvlz.public.blob.vercel-storage.com'
+const STORAGE_BASE = 'https://raw.githubusercontent.com/Albertop86/Hugo-Mine/data'
 
 async function getTodayCharacter() {
   try {
-    const res = await fetch(`${BLOB_BASE}/characters/today.json`, { next: { revalidate: 3600 } })
+    const res = await fetch(`${STORAGE_BASE}/characters/today.json`, { next: { revalidate: 3600 } })
     if (!res.ok) return null
     return res.json()
   } catch {
