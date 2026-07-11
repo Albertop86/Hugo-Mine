@@ -57,7 +57,7 @@ jobs:
           echo "Today is day $DAY (1=Mon)"
 
       - name: Send weekly report (Monday only)
-        if: steps.check-day.outputs.day == '1' || github.event_name == 'workflow_dispatch'
+        if: steps.check-day.outputs.day == '1'
         run: |
           RESPONSE=$(curl -s -w "\n%{http_code}" -X GET \
             "https://makeskins.com/api/cron/weekly-report" \

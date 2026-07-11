@@ -13,6 +13,30 @@ const LOCALE_INST: Record<string, string> = {
   pt: 'Português de Portugal, tom acessível e entusiasta.',
 }
 
+async function callGemini(prompt: string, retries = 3): Promise<string> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.8, maxOutputTokens: 1000 },
+        }),
+      }
+    )
+    if (res.status === 429 && attempt < retries - 1) {
+      await new Promise(r => setTimeout(r, (attempt + 1) * 15000))
+      continue
+    }
+    const data = await res.json()
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${JSON.stringify(data).slice(0, 200)}`)
+    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  }
+  throw new Error('Gemini: max retries exceeded')
+}
+
 async function generateCharacterContent(character: Character, locale: string) {
   const name = locale === 'es' ? character.nameEs : character.nameEn
 
@@ -32,20 +56,7 @@ Responde SOLO con JSON válido sin markdown:
   "funFact": "Un dato curioso o meme sobre ${name} relacionado con Minecraft (20-30 palabras)"
 }`
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.8, maxOutputTokens: 1000 },
-      }),
-    }
-  )
-  const data = await res.json()
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${JSON.stringify(data).slice(0, 200)}`)
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  const text = await callGemini(prompt)
   const match = text.match(/\{[\s\S]*\}/)
   if (!match) throw new Error(`Sin JSON para ${locale}: ${text.slice(0, 100)}`)
   return JSON.parse(match[0])
@@ -122,12 +133,11 @@ export async function GET(req: Request) {
     }
 
     try {
-      await Promise.all([
-        storagePut(`characters/${dateStr}.json`, JSON.stringify(content)),
-        storagePut('characters/today.json', JSON.stringify(content)),
-        storagePut('characters/index.json', JSON.stringify(indexEntries)),
-        ...(skinUrl ? [storagePut('skins/v2/characters/index.json', JSON.stringify(charSkins))] : []),
-      ])
+      const contentJson = JSON.stringify(content)
+      await storagePut(`characters/${dateStr}.json`, contentJson)
+      await storagePut('characters/today.json', contentJson)
+      await storagePut('characters/index.json', JSON.stringify(indexEntries))
+      if (skinUrl) await storagePut('skins/v2/characters/index.json', JSON.stringify(charSkins))
     } catch (storageErr) {
       console.error('[character-of-day] Storage write failed:', storageErr)
     }
