@@ -13,33 +13,31 @@ const LOCALE_INST: Record<string, string> = {
   pt: 'Português de Portugal, tom acessível e entusiasta.',
 }
 
-// Free fallback LLM — Pollinations AI (no API key required)
-// POST to /openai endpoint returns an OpenAI-compatible response
-async function callPollinationsAI(prompt: string): Promise<string> {
-  const res = await fetch('https://text.pollinations.ai/openai', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+// Free fallback LLM — GitHub Models (uses existing GITHUB_STORAGE_TOKEN)
+// OpenAI-compatible API, free via GitHub Marketplace
+async function callGitHubModels(prompt: string): Promise<string> {
+  const token = process.env.GITHUB_STORAGE_TOKEN
+  if (!token) throw new Error('GITHUB_STORAGE_TOKEN not configured')
+  const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
     body: JSON.stringify({
-      model:    'openai',
-      messages: [{ role: 'user', content: prompt }],
-      seed:     Math.floor(Math.random() * 999999),
+      model:       'gpt-4o-mini',
+      messages:    [{ role: 'user', content: prompt }],
+      temperature: 0.8,
+      max_tokens:  1000,
     }),
   })
   if (!res.ok) {
     const errText = await res.text().catch(() => '')
-    throw new Error(`Pollinations ${res.status}: ${errText.slice(0, 100)}`)
+    throw new Error(`GitHub Models ${res.status}: ${errText.slice(0, 150)}`)
   }
-  const raw = await res.text()
-  try {
-    const data = JSON.parse(raw) as { choices?: { message?: { content?: string } }[] }
-    const content = data.choices?.[0]?.message?.content
-    if (content) return content
-  } catch { /* not JSON, use raw */ }
-  return raw
+  const data = await res.json() as { choices?: { message?: { content?: string } }[] }
+  return data.choices?.[0]?.message?.content ?? ''
 }
 
 async function callGemini(prompt: string): Promise<string> {
-  if (!process.env.GEMINI_API_KEY) return callPollinationsAI(prompt)
+  if (!process.env.GEMINI_API_KEY) return callGitHubModels(prompt)
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
     {
@@ -52,8 +50,8 @@ async function callGemini(prompt: string): Promise<string> {
     }
   )
   if (res.status === 429 || res.status === 403) {
-    console.warn('[character-of-day] Gemini quota exhausted, falling back to Pollinations AI')
-    return callPollinationsAI(prompt)
+    console.warn('[character-of-day] Gemini quota exhausted, falling back to GitHub Models')
+    return callGitHubModels(prompt)
   }
   const data = await res.json()
   if (!res.ok) throw new Error(`Gemini ${res.status}: ${JSON.stringify(data).slice(0, 200)}`)

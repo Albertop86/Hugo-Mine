@@ -63,20 +63,23 @@ async function callLLM(prompt: string): Promise<string> {
       const data = await res.json()
       if (res.ok) return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
     }
-    console.warn('[contentGenerator] Gemini quota exhausted, falling back to Pollinations AI')
+    console.warn('[contentGenerator] Gemini quota exhausted, falling back to GitHub Models')
   }
 
-  // Free fallback: Pollinations AI
-  const res = await fetch('https://text.pollinations.ai/openai', {
+  // Free fallback: GitHub Models (uses existing GITHUB_STORAGE_TOKEN)
+  const token = process.env.GITHUB_STORAGE_TOKEN
+  if (!token) throw new Error('GITHUB_STORAGE_TOKEN not configured')
+  const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
     body: JSON.stringify({
-      model:    'openai',
-      messages: [{ role: 'user', content: prompt }],
-      seed:     Math.floor(Math.random() * 999999),
+      model:       'gpt-4o-mini',
+      messages:    [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens:  2000,
     }),
   })
-  if (!res.ok) throw new Error(`Pollinations ${res.status}`)
+  if (!res.ok) throw new Error(`GitHub Models ${res.status}`)
   const data = await res.json() as { choices?: { message?: { content?: string } }[] }
   return data.choices?.[0]?.message?.content ?? ''
 }
