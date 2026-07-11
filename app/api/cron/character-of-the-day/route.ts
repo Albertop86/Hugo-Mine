@@ -44,9 +44,10 @@ Responde SOLO con JSON válido sin markdown:
     }
   )
   const data = await res.json()
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${JSON.stringify(data).slice(0, 200)}`)
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
   const match = text.match(/\{[\s\S]*\}/)
-  if (!match) throw new Error(`Sin JSON para ${locale}`)
+  if (!match) throw new Error(`Sin JSON para ${locale}: ${text.slice(0, 100)}`)
   return JSON.parse(match[0])
 }
 
@@ -82,13 +83,16 @@ export async function GET(req: Request) {
     }
 
     const content: Record<string, unknown> = { slug: character.slug, date: dateStr, character, skinUrl }
+    const localeErrors: Record<string, string> = {}
 
     for (const locale of LOCALES) {
       try {
         content[locale] = await generateCharacterContent(character, locale)
         await new Promise(r => setTimeout(r, 2000))
       } catch (e) {
-        console.error(`[character-of-day] Error ${locale}:`, e)
+        const msg = String(e)
+        console.error(`[character-of-day] Error ${locale}:`, msg)
+        localeErrors[locale] = msg
       }
     }
 
@@ -158,6 +162,7 @@ export async function GET(req: Request) {
       skinUrl,
       names:          { es: character.nameEs, en: character.nameEn },
       pinterestPinId,
+      localeErrors:   Object.keys(localeErrors).length ? localeErrors : undefined,
     })
   } catch (err) {
     console.error('[character-of-day]', err)
