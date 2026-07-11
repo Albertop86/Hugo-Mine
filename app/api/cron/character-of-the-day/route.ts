@@ -14,16 +14,15 @@ const LOCALE_INST: Record<string, string> = {
 }
 
 // Free fallback LLM — Pollinations AI (no API key required)
-// POST returns a message object: {"role":"assistant","reasoning":"...","content":"<JSON string>"}
+// POST to /openai endpoint returns an OpenAI-compatible response
 async function callPollinationsAI(prompt: string): Promise<string> {
-  const res = await fetch('https://text.pollinations.ai/', {
+  const res = await fetch('https://text.pollinations.ai/openai', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      messages:  [{ role: 'user', content: prompt }],
-      model:     'openai',
-      jsonMode:  true,
-      seed:      Math.floor(Math.random() * 999999),
+      model:    'openai',
+      messages: [{ role: 'user', content: prompt }],
+      seed:     Math.floor(Math.random() * 999999),
     }),
   })
   if (!res.ok) {
@@ -32,11 +31,10 @@ async function callPollinationsAI(prompt: string): Promise<string> {
   }
   const raw = await res.text()
   try {
-    const msg = JSON.parse(raw) as { content?: unknown }
-    if (msg.content) {
-      return typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
-    }
-  } catch { /* raw is not JSON wrapper, use as-is */ }
+    const data = JSON.parse(raw) as { choices?: { message?: { content?: string } }[] }
+    const content = data.choices?.[0]?.message?.content
+    if (content) return content
+  } catch { /* not JSON, use raw */ }
   return raw
 }
 
