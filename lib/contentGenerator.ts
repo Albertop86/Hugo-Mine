@@ -46,6 +46,41 @@ export async function generateBlogPost(
   }
 }
 
+async function callLLM(prompt: string): Promise<string> {
+  if (process.env.GEMINI_API_KEY) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 2000 },
+        }),
+      }
+    )
+    if (res.status !== 429 && res.status !== 403) {
+      const data = await res.json()
+      if (res.ok) return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    }
+    console.warn('[contentGenerator] Gemini quota exhausted, falling back to Pollinations AI')
+  }
+
+  // Free fallback: Pollinations AI
+  const res = await fetch('https://text.pollinations.ai/openai', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model:    'openai',
+      messages: [{ role: 'user', content: prompt }],
+      seed:     Math.floor(Math.random() * 999999),
+    }),
+  })
+  if (!res.ok) throw new Error(`Pollinations ${res.status}`)
+  const data = await res.json() as { choices?: { message?: { content?: string } }[] }
+  return data.choices?.[0]?.message?.content ?? ''
+}
+
 async function generateLocaleContent(
   keyword: string,
   locale: string
@@ -72,28 +107,9 @@ Responde SOLO con un JSON válido con esta estructura exacta (sin markdown, sin 
   "cta": "Texto del call-to-action final invitando a usar makeskins.com (1-2 frases)"
 }`
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature:     0.7,
-          maxOutputTokens: 2000,
-        },
-      }),
-    }
-  )
-
-  const data = await res.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-
-  // Extraer JSON limpio de la respuesta
+  const text = await callLLM(prompt)
   const match = text.match(/\{[\s\S]*\}/)
-  if (!match) throw new Error(`Gemini no devolvió JSON válido para ${locale}: ${text.slice(0, 200)}`)
-
+  if (!match) throw new Error(`Sin JSON para ${locale}: ${text.slice(0, 200)}`)
   return JSON.parse(match[0]) as BlogPostLocale
 }
 
