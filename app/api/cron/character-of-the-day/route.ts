@@ -13,28 +13,41 @@ const LOCALE_INST: Record<string, string> = {
   pt: 'Português de Portugal, tom acessível e entusiasta.',
 }
 
-async function callGemini(prompt: string, retries = 3): Promise<string> {
-  for (let attempt = 0; attempt < retries; attempt++) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.8, maxOutputTokens: 1000 },
-        }),
-      }
-    )
-    if (res.status === 429 && attempt < retries - 1) {
-      await new Promise(r => setTimeout(r, (attempt + 1) * 15000))
-      continue
+// Free fallback LLM — Pollinations AI (no API key required)
+async function callPollinationsAI(prompt: string): Promise<string> {
+  const res = await fetch('https://text.pollinations.ai/openai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model:    'openai',
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  })
+  if (!res.ok) throw new Error(`Pollinations ${res.status}`)
+  const data = await res.json()
+  return data.choices?.[0]?.message?.content ?? ''
+}
+
+async function callGemini(prompt: string): Promise<string> {
+  if (!process.env.GEMINI_API_KEY) return callPollinationsAI(prompt)
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.8, maxOutputTokens: 1000 },
+      }),
     }
-    const data = await res.json()
-    if (!res.ok) throw new Error(`Gemini ${res.status}: ${JSON.stringify(data).slice(0, 200)}`)
-    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  )
+  if (res.status === 429 || res.status === 403) {
+    console.warn('[character-of-day] Gemini quota exhausted, falling back to Pollinations AI')
+    return callPollinationsAI(prompt)
   }
-  throw new Error('Gemini: max retries exceeded')
+  const data = await res.json()
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${JSON.stringify(data).slice(0, 200)}`)
+  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
 }
 
 async function generateCharacterContent(character: Character, locale: string) {
