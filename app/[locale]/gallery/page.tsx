@@ -28,7 +28,7 @@ const CAT_LABELS: Record<CharCat, Record<string, string>> = {
 function charSkinUrl(char: typeof CHARACTERS[0]): string {
   return char.skinFile
     ? `/skins/premade/${char.skinFile}.png`
-    : `${STORAGE_BASE}/skins/characters/${char.slug}.png`
+    : `${STORAGE_BASE}/skins/v2/characters/${char.slug}.png`
 }
 
 // ── Premade/community skin card (download only) ────────────────────────────────
@@ -126,7 +126,7 @@ export default function GalleryPage() {
   useEffect(() => {
     Promise.all([
       fetch('/api/skins').then(r => r.json()).catch(() => ({ skins: [] })),
-      fetch(`${STORAGE_BASE}/skins/characters/index.json`).then(r => r.json()).catch(() => []),
+      fetch(`${STORAGE_BASE}/skins/v2/characters/index.json`).then(r => r.json()).catch(() => []),
     ]).then(([skinData, charIndex]) => {
       setCommunity(skinData.skins ?? [])
       const slugs = (charIndex as { slug: string }[]).map(e => e.slug)

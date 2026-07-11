@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { storagePut, storageGetJson } from '@/lib/storage'
 import { getCharacterOfTheDay, type Character } from '@/lib/characterOfTheDay'
-import { makeCharacterSkin, getPalette, getExtras } from '@/lib/characterSkinGenerator'
+import { getSkinUrl } from '@/lib/getSkinUrl'
 import { postPin } from '@/lib/pinterest'
 
 const LOCALES = ['es', 'en', 'fr', 'pt'] as const
@@ -60,15 +60,6 @@ interface CharSkinEntry {
   skinUrl:  string
 }
 
-async function generateAndStoreSkin(character: Character): Promise<string> {
-  if (character.skinFile) {
-    return `/skins/premade/${character.skinFile}.png`
-  }
-  const palette   = getPalette(character.slug, character.category)
-  const pngBuffer = makeCharacterSkin(palette, getExtras(character.slug))
-  return storagePut(`skins/characters/${character.slug}.png`, pngBuffer)
-}
-
 export async function GET(req: Request) {
   const auth = req.headers.get('authorization')
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -85,7 +76,7 @@ export async function GET(req: Request) {
 
     let skinUrl = ''
     try {
-      skinUrl = await generateAndStoreSkin(character)
+      skinUrl = (await getSkinUrl(character)) ?? ''
     } catch (e) {
       console.error('[character-of-day] Skin error:', e)
     }
@@ -113,7 +104,7 @@ export async function GET(req: Request) {
     else indexEntries.push(todayEntry)
     indexEntries.sort((a, b) => b.date.localeCompare(a.date))
 
-    const charSkins = await storageGetJson<CharSkinEntry[]>('skins/characters/index.json', [])
+    const charSkins = await storageGetJson<CharSkinEntry[]>('skins/v2/characters/index.json', [])
 
     if (skinUrl) {
       const skinEntry: CharSkinEntry = {
@@ -131,7 +122,7 @@ export async function GET(req: Request) {
         storagePut(`characters/${dateStr}.json`, JSON.stringify(content)),
         storagePut('characters/today.json', JSON.stringify(content)),
         storagePut('characters/index.json', JSON.stringify(indexEntries)),
-        ...(skinUrl ? [storagePut('skins/characters/index.json', JSON.stringify(charSkins))] : []),
+        ...(skinUrl ? [storagePut('skins/v2/characters/index.json', JSON.stringify(charSkins))] : []),
       ])
     } catch (storageErr) {
       console.error('[character-of-day] Storage write failed:', storageErr)
