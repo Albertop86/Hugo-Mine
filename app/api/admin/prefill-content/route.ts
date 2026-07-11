@@ -12,6 +12,39 @@ const LOCALE_INST: Record<string, string> = {
   pt: 'Português de Portugal, tom acessível e entusiasta.',
 }
 
+async function callLLM(prompt: string): Promise<string> {
+  if (process.env.GEMINI_API_KEY) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.8, maxOutputTokens: 1000 },
+        }),
+      }
+    )
+    if (res.status !== 429 && res.status !== 403) {
+      const data = await res.json()
+      if (res.ok) return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    }
+    console.warn('[prefill-admin] Gemini quota exhausted, falling back to Pollinations AI')
+  }
+  const res = await fetch('https://text.pollinations.ai/openai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'openai',
+      messages: [{ role: 'user', content: prompt }],
+      seed: Math.floor(Math.random() * 999999),
+    }),
+  })
+  if (!res.ok) throw new Error(`Pollinations ${res.status}`)
+  const data = await res.json() as { choices?: { message?: { content?: string } }[] }
+  return data.choices?.[0]?.message?.content ?? ''
+}
+
 async function generateContent(character: Character, locale: string) {
   const name = locale === 'es' ? character.nameEs : character.nameEn
   const prompt = `Eres experto en Minecraft y cultura pop. ${LOCALE_INST[locale]}
@@ -30,23 +63,7 @@ Responde SOLO con JSON válido sin markdown:
   "funFact": "Un dato curioso o meme sobre ${name} relacionado con Minecraft (20-30 palabras)"
 }`
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.8, maxOutputTokens: 1000 },
-      }),
-    }
-  )
-  if (!res.ok) {
-    const errText = await res.text()
-    throw new Error(`Gemini ${res.status}: ${errText.slice(0, 200)}`)
-  }
-  const data = await res.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  const text = await callLLM(prompt)
   const match = text.match(/\{[\s\S]*\}/)
   if (!match) throw new Error(`No JSON for ${locale}: ${text.slice(0, 100)}`)
   return JSON.parse(match[0])
