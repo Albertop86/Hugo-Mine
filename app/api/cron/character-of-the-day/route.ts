@@ -14,6 +14,7 @@ const LOCALE_INST: Record<string, string> = {
 }
 
 // Free fallback LLM — Pollinations AI (no API key required)
+// POST returns a message object: {"role":"assistant","reasoning":"...","content":"<JSON string>"}
 async function callPollinationsAI(prompt: string): Promise<string> {
   const res = await fetch('https://text.pollinations.ai/', {
     method: 'POST',
@@ -29,8 +30,14 @@ async function callPollinationsAI(prompt: string): Promise<string> {
     const errText = await res.text().catch(() => '')
     throw new Error(`Pollinations ${res.status}: ${errText.slice(0, 100)}`)
   }
-  // Pollinations returns plain text (the model's raw output), not OpenAI JSON
-  return res.text()
+  const raw = await res.text()
+  try {
+    const msg = JSON.parse(raw) as { content?: unknown }
+    if (msg.content) {
+      return typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+    }
+  } catch { /* raw is not JSON wrapper, use as-is */ }
+  return raw
 }
 
 async function callGemini(prompt: string): Promise<string> {
