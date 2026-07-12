@@ -8,8 +8,9 @@ export const revalidate = 3600 // revalida cada hora
 type Props = { params: Promise<{ locale: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale } = await params
-  const m = BLOG_INDEX_META[locale as Locale]
+  const { locale: localeStr } = await params
+  const locale = localeStr as Locale
+  const m = BLOG_INDEX_META[locale]
   return { title: m.metaTitle, description: m.metaDesc }
 }
 
@@ -21,8 +22,9 @@ const READ_MORE: Record<Locale, string> = {
 }
 
 export default async function BlogIndexPage({ params }: Props) {
-  const { locale } = await params
-  const m = BLOG_INDEX_META[locale as Locale]
+  const { locale: localeStr } = await params
+  const locale = localeStr as Locale
+  const m = BLOG_INDEX_META[locale]
 
   // Posts dinámicos del Blob store (lectura vía CDN público, sin token)
   let dynamicPosts: BlogPost[] = []

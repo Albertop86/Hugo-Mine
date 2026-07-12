@@ -84,7 +84,8 @@ async function resolvePost(slug: string, locale: Locale): Promise<{
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug, locale } = await params
+  const { slug, locale: localeStr } = await params
+  const locale = localeStr as Locale
   const post = await resolvePost(slug, locale)
   if (!post) return {}
   return {
@@ -106,7 +107,8 @@ const RELATED: Record<Locale, string> = {
 }
 
 export default async function BlogPostPage({ params }: Props) {
-  const { slug, locale } = await params
+  const { slug, locale: localeStr } = await params
+  const locale = localeStr as Locale
   const post = await resolvePost(slug, locale)
   if (!post) notFound()
 

@@ -17,7 +17,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { platform, locale } = await params
+  const { platform, locale: localeStr } = await params
+  const locale = localeStr as Locale
   const guide = GUIDES.find((g) => g.slug === platform)
   if (!guide) return {}
   const c = guide.content[locale]
@@ -25,7 +26,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function GuidePlatformPage({ params }: Props) {
-  const { platform, locale } = await params
+  const { platform, locale: localeStr } = await params
+  const locale = localeStr as Locale
   const guide = GUIDES.find((g) => g.slug === platform)
   if (!guide) notFound()
 
