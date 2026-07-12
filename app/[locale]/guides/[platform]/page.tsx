@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { getLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { GUIDES, type Locale } from '@/lib/guidesContent'
@@ -18,8 +17,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { platform } = await params
-  const locale = (await getLocale()) as Locale
+  const { platform, locale } = await params
   const guide = GUIDES.find((g) => g.slug === platform)
   if (!guide) return {}
   const c = guide.content[locale]
@@ -27,8 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function GuidePlatformPage({ params }: Props) {
-  const { platform } = await params
-  const locale = (await getLocale()) as Locale
+  const { platform, locale } = await params
   const guide = GUIDES.find((g) => g.slug === platform)
   if (!guide) notFound()
 

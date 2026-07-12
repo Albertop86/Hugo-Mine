@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { getLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getCharacterBySlug, getAllCharacterSlugs, CHARACTERS } from '@/lib/characterOfTheDay'
@@ -57,8 +56,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params
-  const locale = await getLocale()
+  const { slug, locale } = await params
   const char = getCharacterBySlug(slug)
   if (!char) return {}
 
@@ -124,8 +122,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 export default async function SkinCharacterPage({ params }: Props) {
-  const { slug } = await params
-  const locale = await getLocale()
+  const { slug, locale } = await params
   const char = getCharacterBySlug(slug)
   if (!char) notFound()
 

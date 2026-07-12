@@ -1,20 +1,21 @@
 import type { Metadata } from 'next'
-import { getLocale } from 'next-intl/server'
 import Link from 'next/link'
 import { GUIDES, GUIDES_INDEX, type Locale } from '@/lib/guidesContent'
 
-export async function generateMetadata(): Promise<Metadata> {
-  const locale = (await getLocale()) as Locale
-  const idx = GUIDES_INDEX[locale]
+type Props = { params: Promise<{ locale: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params
+  const idx = GUIDES_INDEX[locale as Locale]
   return {
     title: idx.metaTitle,
     description: idx.metaDesc,
   }
 }
 
-export default async function GuidesIndexPage() {
-  const locale = (await getLocale()) as Locale
-  const idx = GUIDES_INDEX[locale]
+export default async function GuidesIndexPage({ params }: Props) {
+  const { locale } = await params
+  const idx = GUIDES_INDEX[locale as Locale]
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
@@ -37,10 +38,10 @@ export default async function GuidesIndexPage() {
           >
             <span className="text-4xl">{g.icon}</span>
             <h2 className="mt-3 font-bold text-lg" style={{ color: 'var(--color-earth)' }}>
-              {g.platformName[locale]}
+              {g.platformName[locale as Locale]}
             </h2>
             <p className="mt-1 text-sm opacity-60" style={{ color: 'var(--color-earth)' }}>
-              {g.content[locale].intro.slice(0, 90)}…
+              {g.content[locale as Locale].intro.slice(0, 90)}…
             </p>
           </Link>
         ))}

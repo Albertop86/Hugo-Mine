@@ -1,14 +1,15 @@
 import type { Metadata } from 'next'
-import { getLocale } from 'next-intl/server'
 import Link from 'next/link'
 import { BLOG_POSTS, BLOG_INDEX_META, type Locale } from '@/lib/blogPosts'
 import { listPosts, type BlogPost } from '@/lib/blogStore'
 
 export const revalidate = 3600 // revalida cada hora
 
-export async function generateMetadata(): Promise<Metadata> {
-  const locale = (await getLocale()) as Locale
-  const m = BLOG_INDEX_META[locale]
+type Props = { params: Promise<{ locale: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params
+  const m = BLOG_INDEX_META[locale as Locale]
   return { title: m.metaTitle, description: m.metaDesc }
 }
 
@@ -19,9 +20,9 @@ const READ_MORE: Record<Locale, string> = {
   pt: 'Ler artigo →',
 }
 
-export default async function BlogIndexPage() {
-  const locale = (await getLocale()) as Locale
-  const m = BLOG_INDEX_META[locale]
+export default async function BlogIndexPage({ params }: Props) {
+  const { locale } = await params
+  const m = BLOG_INDEX_META[locale as Locale]
 
   // Posts dinámicos del Blob store (lectura vía CDN público, sin token)
   let dynamicPosts: BlogPost[] = []

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { getLocale } from 'next-intl/server'
 import Link from 'next/link'
 import { CHARACTERS } from '@/lib/characterOfTheDay'
 
@@ -64,8 +63,10 @@ const CATEGORY_COLORS: Record<string, string> = {
   Minecraft: '#16a34a',
 }
 
-export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getLocale()
+type Props = { params: Promise<{ locale: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params
   const m = META[locale] ?? META.en
   return {
     title:       m.title,
@@ -76,8 +77,8 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function SkinsArchivePage() {
-  const locale = await getLocale()
+export default async function SkinsArchivePage({ params }: Props) {
+  const { locale } = await params
   const m   = META[locale] ?? META.en
   const L   = (key: string) => LABELS[key]?.[locale] ?? LABELS[key]?.en ?? key
 

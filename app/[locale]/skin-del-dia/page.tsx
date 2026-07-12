@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { getLocale } from 'next-intl/server'
 import Link from 'next/link'
 import SkinDisplay from '@/components/SkinDisplay'
 import AmazonBox from '@/components/AmazonBox'
@@ -40,14 +39,16 @@ const LABELS: Record<string, Record<string, string>> = {
   archive:    { es: 'Ver todos los personajes →', en: 'See all characters →', fr: 'Voir tous les personnages →', pt: 'Ver todos os personagens →' },
 }
 
-export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getLocale()
+type Props = { params: Promise<{ locale: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params
   const m = META[locale] ?? META.en
   return { title: m.title, description: m.desc }
 }
 
-export default async function SkinDelDiaPage() {
-  const locale   = await getLocale()
+export default async function SkinDelDiaPage({ params }: Props) {
+  const { locale } = await params
   const L        = (key: string) => LABELS[key]?.[locale] ?? LABELS[key]?.en ?? key
   const todayStr = new Date().toISOString().slice(0, 10)
 
